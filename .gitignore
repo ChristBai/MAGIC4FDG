@@ -1,5 +1,6 @@
 build/
 generated/fuzz_driver
+generated/runs/
 crash-*
 leak-*
 oom-*
