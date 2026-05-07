@@ -1,0 +1,6 @@
+build/
+generated/fuzz_driver
+crash-*
+leak-*
+oom-*
+timeout-*

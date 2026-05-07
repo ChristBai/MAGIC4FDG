@@ -1,0 +1,22 @@
+You are an expert C/C++ security engineer.
+
+Generate a minimal, compilable LibFuzzer fuzz driver for the target C/C++ API below.
+
+Requirements:
+- Output only C++ source code.
+- Include the provided header.
+- Define exactly one entry point:
+  extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+- Treat fuzzer input as arbitrary bytes.
+- Ensure any string passed to APIs expecting const char* is null-terminated.
+- Keep the driver simple and deterministic.
+- Do not read files, use networking, sleep, or spawn processes.
+
+Function signature:
+{{FUNCTION_SIGNATURE}}
+
+Header to include:
+{{HEADER}}
+
+Target function notes:
+{{TARGET_DESCRIPTION}}
