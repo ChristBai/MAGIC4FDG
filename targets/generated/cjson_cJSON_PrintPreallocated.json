@@ -1,0 +1,26 @@
+{
+  "name": "cjson_cJSON_PrintPreallocated",
+  "target_name": "cjson_cJSON_PrintPreallocated",
+  "language": "c",
+  "function_name": "cJSON_PrintPreallocated",
+  "signature": "cJSON_bool cJSON_PrintPreallocated(cJSON *item, char *buffer, const int length, const cJSON_bool format)",
+  "header": "cJSON.h",
+  "source_files": [
+    "examples/cjson_lib/cJSON.c"
+  ],
+  "include_dirs": [
+    "examples/cjson_lib"
+  ],
+  "seed_corpus": "examples/cjson_lib/seed_corpus",
+  "cleanup_function": null,
+  "description": "Call cJSON_PrintPreallocated with fuzz-generated input according to its signature.",
+  "analysis": {
+    "score": 65,
+    "reasons": [
+      "+40 raw/string input parameter",
+      "+25 primitive length/count parameter"
+    ],
+    "return_type": "cJSON_bool",
+    "parameters": "cJSON *item, char *buffer, const int length, const cJSON_bool format"
+  }
+}

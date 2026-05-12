@@ -9,14 +9,38 @@ Requirements:
   extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 - Treat fuzzer input as arbitrary bytes.
 - Ensure any string passed to APIs expecting const char* is null-terminated.
+- If the target API returns an object or allocation, release it with the cleanup function.
 - Keep the driver simple and deterministic.
 - Do not read files, use networking, sleep, or spawn processes.
+- Do not add exploit logic or attack logic.
+- The driver must compile with the listed implementation source files and include directories.
+
+Target name:
+cjson_parse
+
+Language:
+c
+
+Function name:
+cJSON_Parse
 
 Function signature:
-int parse_int(const char* s)
+cJSON *cJSON_Parse(const char *value)
 
 Header to include:
-tiny.h
+cJSON.h
 
 Target function notes:
-Parses a null-terminated string as an integer. Aborts when input equals CRASH.
+Parse a null-terminated JSON string and release the returned object with cJSON_Delete.
+
+Cleanup function:
+cJSON_Delete
+
+Implementation source files:
+- examples/cjson_lib/cJSON.c
+
+Include directories:
+- examples/cjson_lib
+
+Seed corpus:
+examples/cjson_lib/seed_corpus

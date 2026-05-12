@@ -1,0 +1,27 @@
+{
+  "name": "cjson_cJSON_DetachItemFromObject",
+  "target_name": "cjson_cJSON_DetachItemFromObject",
+  "language": "c",
+  "function_name": "cJSON_DetachItemFromObject",
+  "signature": "cJSON * cJSON_DetachItemFromObject(cJSON *object, const char *string)",
+  "header": "cJSON.h",
+  "source_files": [
+    "examples/cjson_lib/cJSON.c"
+  ],
+  "include_dirs": [
+    "examples/cjson_lib"
+  ],
+  "seed_corpus": "examples/cjson_lib/seed_corpus",
+  "cleanup_function": "cJSON_Delete",
+  "description": "Call cJSON_DetachItemFromObject with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+  "analysis": {
+    "score": 75,
+    "reasons": [
+      "+40 raw/string input parameter",
+      "+20 parser/decoder-style function name",
+      "+15 pointer-like return type"
+    ],
+    "return_type": "cJSON *",
+    "parameters": "cJSON *object, const char *string"
+  }
+}

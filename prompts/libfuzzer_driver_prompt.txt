@@ -9,8 +9,20 @@ Requirements:
   extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 - Treat fuzzer input as arbitrary bytes.
 - Ensure any string passed to APIs expecting const char* is null-terminated.
+- If the target API returns an object or allocation, release it with the cleanup function.
 - Keep the driver simple and deterministic.
 - Do not read files, use networking, sleep, or spawn processes.
+- Do not add exploit logic or attack logic.
+- The driver must compile with the listed implementation source files and include directories.
+
+Target name:
+{{TARGET_NAME}}
+
+Language:
+{{LANGUAGE}}
+
+Function name:
+{{FUNCTION_NAME}}
 
 Function signature:
 {{FUNCTION_SIGNATURE}}
@@ -20,3 +32,15 @@ Header to include:
 
 Target function notes:
 {{TARGET_DESCRIPTION}}
+
+Cleanup function:
+{{CLEANUP_FUNCTION}}
+
+Implementation source files:
+{{SOURCE_FILES}}
+
+Include directories:
+{{INCLUDE_DIRS}}
+
+Seed corpus:
+{{SEED_CORPUS}}

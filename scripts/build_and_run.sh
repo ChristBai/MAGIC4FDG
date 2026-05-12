@@ -2,19 +2,30 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CC="${CC:-clang}"
 CXX="${CXX:-clang++}"
 FUZZ_USE_CMP="${FUZZ_USE_CMP:-0}"
+TARGET_CONFIG="${TARGET_CONFIG:-targets/cjson_parse.json}"
 
-SEED_CORPUS="${ROOT_DIR}/examples/tiny_lib/seed_corpus"
 RUNS_DIR="${ROOT_DIR}/generated/runs"
+TARGET_CONFIG_PATH="${ROOT_DIR}/${TARGET_CONFIG}"
+
+if [[ ! -f "${TARGET_CONFIG_PATH}" ]]; then
+  echo "error: target config not found: ${TARGET_CONFIG}" >&2
+  exit 1
+fi
+
+eval "$(python3 "${ROOT_DIR}/scripts/parse_target_config.py" "${TARGET_CONFIG_PATH}")"
+
+SEED_CORPUS="${ROOT_DIR}/${SEED_CORPUS}"
 
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
-RUN_REL="generated/runs/${timestamp}"
+RUN_REL="generated/runs/${TARGET_NAME}-${timestamp}"
 RUN_DIR="${ROOT_DIR}/${RUN_REL}"
 while [[ -e "${RUN_DIR}" ]]; do
   sleep 1
   timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
-  RUN_REL="generated/runs/${timestamp}"
+  RUN_REL="generated/runs/${TARGET_NAME}-${timestamp}"
   RUN_DIR="${ROOT_DIR}/${RUN_REL}"
 done
 
@@ -47,6 +58,11 @@ if ! command -v "${CXX}" >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v "${CC}" >/dev/null 2>&1; then
+  echo "error: clang not found. Set CC=/path/to/clang or install clang." >&2
+  exit 1
+fi
+
 if [[ "${FUZZ_USE_CMP}" != "0" && "${FUZZ_USE_CMP}" != "1" ]]; then
   echo "error: FUZZ_USE_CMP must be 0 or 1." >&2
   exit 1
@@ -61,21 +77,39 @@ echo "run directory: ${RUN_DIR}"
 echo "corpus directory: ${RUN_CORPUS}"
 echo "artifact directory: ${ARTIFACT_DIR}"
 echo "log file: ${LOG_FILE}"
+echo "target config: ${TARGET_CONFIG}"
+echo "target name: ${TARGET_NAME}"
 echo "FUZZ_USE_CMP=${FUZZ_USE_CMP}"
 
 seed_hash_before="$(seed_file_list_hash)"
 echo "seed corpus file-list hash before: ${seed_hash_before}"
 
 "${CXX}" --version
+"${CC}" --version
 cd "${ROOT_DIR}"
+
+object_files=()
+for source_file in "${SOURCE_FILES[@]}"; do
+  object_file="${RUN_DIR}/$(basename "${source_file}").o"
+  object_files+=("${object_file}")
+
+  case "${source_file}" in
+    *.c)
+      "${CC}" -g -O1 -fsanitize=address "${INCLUDE_ARGS[@]}" -c "${source_file}" -o "${object_file}"
+      ;;
+    *)
+      "${CXX}" -std=c++17 -g -O1 -fsanitize=address "${INCLUDE_ARGS[@]}" -c "${source_file}" -o "${object_file}"
+      ;;
+  esac
+done
 
 if ! "${CXX}" \
   -std=c++17 \
   -g \
   -O1 \
   -fsanitize=fuzzer,address \
-  -Iexamples/tiny_lib \
-  examples/tiny_lib/tiny.cpp \
+  "${INCLUDE_ARGS[@]}" \
+  "${object_files[@]}" \
   generated/fuzz_driver.cpp \
   -o "${FUZZ_TARGET_REL}"; then
   echo "error: failed to compile with the real LibFuzzer runtime." >&2

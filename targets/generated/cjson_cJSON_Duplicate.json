@@ -1,0 +1,27 @@
+{
+  "name": "cjson_cJSON_Duplicate",
+  "target_name": "cjson_cJSON_Duplicate",
+  "language": "c",
+  "function_name": "cJSON_Duplicate",
+  "signature": "cJSON * cJSON_Duplicate(const cJSON *item, cJSON_bool recurse)",
+  "header": "cJSON.h",
+  "source_files": [
+    "examples/cjson_lib/cJSON.c"
+  ],
+  "include_dirs": [
+    "examples/cjson_lib"
+  ],
+  "seed_corpus": "examples/cjson_lib/seed_corpus",
+  "cleanup_function": "cJSON_Delete",
+  "description": "Call cJSON_Duplicate with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+  "analysis": {
+    "score": -65,
+    "reasons": [
+      "+15 pointer-like return type",
+      "-30 complex object pointer without raw/string input",
+      "-50 appears to require existing library object without raw input"
+    ],
+    "return_type": "cJSON *",
+    "parameters": "const cJSON *item, cJSON_bool recurse"
+  }
+}

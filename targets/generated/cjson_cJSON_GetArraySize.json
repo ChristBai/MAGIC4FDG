@@ -1,0 +1,26 @@
+{
+  "name": "cjson_cJSON_GetArraySize",
+  "target_name": "cjson_cJSON_GetArraySize",
+  "language": "c",
+  "function_name": "cJSON_GetArraySize",
+  "signature": "int cJSON_GetArraySize(const cJSON *array)",
+  "header": "cJSON.h",
+  "source_files": [
+    "examples/cjson_lib/cJSON.c"
+  ],
+  "include_dirs": [
+    "examples/cjson_lib"
+  ],
+  "seed_corpus": "examples/cjson_lib/seed_corpus",
+  "cleanup_function": null,
+  "description": "Call cJSON_GetArraySize with fuzz-generated input according to its signature.",
+  "analysis": {
+    "score": -80,
+    "reasons": [
+      "-30 complex object pointer without raw/string input",
+      "-50 appears to require existing library object without raw input"
+    ],
+    "return_type": "int",
+    "parameters": "const cJSON *array"
+  }
+}

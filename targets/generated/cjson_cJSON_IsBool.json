@@ -1,0 +1,26 @@
+{
+  "name": "cjson_cJSON_IsBool",
+  "target_name": "cjson_cJSON_IsBool",
+  "language": "c",
+  "function_name": "cJSON_IsBool",
+  "signature": "cJSON_bool cJSON_IsBool(const cJSON * const item)",
+  "header": "cJSON.h",
+  "source_files": [
+    "examples/cjson_lib/cJSON.c"
+  ],
+  "include_dirs": [
+    "examples/cjson_lib"
+  ],
+  "seed_corpus": "examples/cjson_lib/seed_corpus",
+  "cleanup_function": null,
+  "description": "Call cJSON_IsBool with fuzz-generated input according to its signature.",
+  "analysis": {
+    "score": -80,
+    "reasons": [
+      "-30 complex object pointer without raw/string input",
+      "-50 appears to require existing library object without raw input"
+    ],
+    "return_type": "cJSON_bool",
+    "parameters": "const cJSON * const item"
+  }
+}

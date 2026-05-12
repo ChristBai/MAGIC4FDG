@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -20,13 +21,23 @@ std::vector<std::string> load_corpus(int argc, char** argv) {
             continue;
         }
 
-        std::ifstream input(arg + "/seed.txt", std::ios::binary);
-        if (!input) {
+        if (!std::filesystem::is_directory(arg)) {
             continue;
         }
-        corpus.emplace_back(
-            std::istreambuf_iterator<char>(input),
-            std::istreambuf_iterator<char>());
+
+        for (const auto& entry : std::filesystem::directory_iterator(arg)) {
+            if (!entry.is_regular_file()) {
+                continue;
+            }
+
+            std::ifstream input(entry.path(), std::ios::binary);
+            if (!input) {
+                continue;
+            }
+            corpus.emplace_back(
+                std::istreambuf_iterator<char>(input),
+                std::istreambuf_iterator<char>());
+        }
     }
 
     if (corpus.empty()) {

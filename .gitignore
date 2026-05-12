@@ -1,5 +1,9 @@
 build/
+__pycache__/
+*.pyc
 generated/fuzz_driver
+generated/coverage/
+generated/llm_response.json
 generated/runs/
 crash-*
 leak-*

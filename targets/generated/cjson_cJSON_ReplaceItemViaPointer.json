@@ -1,0 +1,26 @@
+{
+  "name": "cjson_cJSON_ReplaceItemViaPointer",
+  "target_name": "cjson_cJSON_ReplaceItemViaPointer",
+  "language": "c",
+  "function_name": "cJSON_ReplaceItemViaPointer",
+  "signature": "cJSON_bool cJSON_ReplaceItemViaPointer(cJSON * const parent, cJSON * const item, cJSON * replacement)",
+  "header": "cJSON.h",
+  "source_files": [
+    "examples/cjson_lib/cJSON.c"
+  ],
+  "include_dirs": [
+    "examples/cjson_lib"
+  ],
+  "seed_corpus": "examples/cjson_lib/seed_corpus",
+  "cleanup_function": null,
+  "description": "Call cJSON_ReplaceItemViaPointer with fuzz-generated input according to its signature.",
+  "analysis": {
+    "score": -80,
+    "reasons": [
+      "-30 complex object pointer without raw/string input",
+      "-50 appears to require existing library object without raw input"
+    ],
+    "return_type": "cJSON_bool",
+    "parameters": "cJSON * const parent, cJSON * const item, cJSON * replacement"
+  }
+}

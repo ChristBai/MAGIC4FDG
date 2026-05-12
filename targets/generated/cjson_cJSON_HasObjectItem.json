@@ -1,0 +1,25 @@
+{
+  "name": "cjson_cJSON_HasObjectItem",
+  "target_name": "cjson_cJSON_HasObjectItem",
+  "language": "c",
+  "function_name": "cJSON_HasObjectItem",
+  "signature": "cJSON_bool cJSON_HasObjectItem(const cJSON *object, const char *string)",
+  "header": "cJSON.h",
+  "source_files": [
+    "examples/cjson_lib/cJSON.c"
+  ],
+  "include_dirs": [
+    "examples/cjson_lib"
+  ],
+  "seed_corpus": "examples/cjson_lib/seed_corpus",
+  "cleanup_function": null,
+  "description": "Call cJSON_HasObjectItem with fuzz-generated input according to its signature.",
+  "analysis": {
+    "score": 40,
+    "reasons": [
+      "+40 raw/string input parameter"
+    ],
+    "return_type": "cJSON_bool",
+    "parameters": "const cJSON *object, const char *string"
+  }
+}

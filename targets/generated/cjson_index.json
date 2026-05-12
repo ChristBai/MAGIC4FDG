@@ -1,0 +1,1915 @@
+[
+  {
+    "name": "cjson_cJSON_ParseWithLength",
+    "target_name": "cjson_cJSON_ParseWithLength",
+    "language": "c",
+    "function_name": "cJSON_ParseWithLength",
+    "signature": "cJSON * cJSON_ParseWithLength(const char *value, size_t buffer_length)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_ParseWithLength with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 100,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+25 primitive length/count parameter",
+        "+20 parser/decoder-style function name",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const char *value, size_t buffer_length"
+    }
+  },
+  {
+    "name": "cjson_cJSON_ParseWithLengthOpts",
+    "target_name": "cjson_cJSON_ParseWithLengthOpts",
+    "language": "c",
+    "function_name": "cJSON_ParseWithLengthOpts",
+    "signature": "cJSON * cJSON_ParseWithLengthOpts(const char *value, size_t buffer_length, const char **return_parse_end, cJSON_bool require_null_terminated)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_ParseWithLengthOpts with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 100,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+25 primitive length/count parameter",
+        "+20 parser/decoder-style function name",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const char *value, size_t buffer_length, const char **return_parse_end, cJSON_bool require_null_terminated"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateStringArray",
+    "target_name": "cjson_cJSON_CreateStringArray",
+    "language": "c",
+    "function_name": "cJSON_CreateStringArray",
+    "signature": "cJSON * cJSON_CreateStringArray(const char *const *strings, int count)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateStringArray with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 80,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+25 primitive length/count parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const char *const *strings, int count"
+    }
+  },
+  {
+    "name": "cjson_cJSON_DetachItemFromObject",
+    "target_name": "cjson_cJSON_DetachItemFromObject",
+    "language": "c",
+    "function_name": "cJSON_DetachItemFromObject",
+    "signature": "cJSON * cJSON_DetachItemFromObject(cJSON *object, const char *string)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_DetachItemFromObject with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 75,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+20 parser/decoder-style function name",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "cJSON *object, const char *string"
+    }
+  },
+  {
+    "name": "cjson_cJSON_DetachItemFromObjectCaseSensitive",
+    "target_name": "cjson_cJSON_DetachItemFromObjectCaseSensitive",
+    "language": "c",
+    "function_name": "cJSON_DetachItemFromObjectCaseSensitive",
+    "signature": "cJSON * cJSON_DetachItemFromObjectCaseSensitive(cJSON *object, const char *string)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_DetachItemFromObjectCaseSensitive with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 75,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+20 parser/decoder-style function name",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "cJSON *object, const char *string"
+    }
+  },
+  {
+    "name": "cjson_cJSON_Parse",
+    "target_name": "cjson_cJSON_Parse",
+    "language": "c",
+    "function_name": "cJSON_Parse",
+    "signature": "cJSON * cJSON_Parse(const char *value)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_Parse with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 75,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+20 parser/decoder-style function name",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const char *value"
+    }
+  },
+  {
+    "name": "cjson_cJSON_ParseWithOpts",
+    "target_name": "cjson_cJSON_ParseWithOpts",
+    "language": "c",
+    "function_name": "cJSON_ParseWithOpts",
+    "signature": "cJSON * cJSON_ParseWithOpts(const char *value, const char **return_parse_end, cJSON_bool require_null_terminated)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_ParseWithOpts with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 75,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+20 parser/decoder-style function name",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const char *value, const char **return_parse_end, cJSON_bool require_null_terminated"
+    }
+  },
+  {
+    "name": "cjson_cJSON_PrintPreallocated",
+    "target_name": "cjson_cJSON_PrintPreallocated",
+    "language": "c",
+    "function_name": "cJSON_PrintPreallocated",
+    "signature": "cJSON_bool cJSON_PrintPreallocated(cJSON *item, char *buffer, const int length, const cJSON_bool format)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_PrintPreallocated with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": 65,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+25 primitive length/count parameter"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "cJSON *item, char *buffer, const int length, const cJSON_bool format"
+    }
+  },
+  {
+    "name": "cjson_cJSON_AddArrayToObject",
+    "target_name": "cjson_cJSON_AddArrayToObject",
+    "language": "c",
+    "function_name": "cJSON_AddArrayToObject",
+    "signature": "cJSON* cJSON_AddArrayToObject(cJSON * const object, const char * const name)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_AddArrayToObject with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON*",
+      "parameters": "cJSON * const object, const char * const name"
+    }
+  },
+  {
+    "name": "cjson_cJSON_AddBoolToObject",
+    "target_name": "cjson_cJSON_AddBoolToObject",
+    "language": "c",
+    "function_name": "cJSON_AddBoolToObject",
+    "signature": "cJSON* cJSON_AddBoolToObject(cJSON * const object, const char * const name, const cJSON_bool boolean)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_AddBoolToObject with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON*",
+      "parameters": "cJSON * const object, const char * const name, const cJSON_bool boolean"
+    }
+  },
+  {
+    "name": "cjson_cJSON_AddFalseToObject",
+    "target_name": "cjson_cJSON_AddFalseToObject",
+    "language": "c",
+    "function_name": "cJSON_AddFalseToObject",
+    "signature": "cJSON* cJSON_AddFalseToObject(cJSON * const object, const char * const name)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_AddFalseToObject with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON*",
+      "parameters": "cJSON * const object, const char * const name"
+    }
+  },
+  {
+    "name": "cjson_cJSON_AddNullToObject",
+    "target_name": "cjson_cJSON_AddNullToObject",
+    "language": "c",
+    "function_name": "cJSON_AddNullToObject",
+    "signature": "cJSON* cJSON_AddNullToObject(cJSON * const object, const char * const name)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_AddNullToObject with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON*",
+      "parameters": "cJSON * const object, const char * const name"
+    }
+  },
+  {
+    "name": "cjson_cJSON_AddNumberToObject",
+    "target_name": "cjson_cJSON_AddNumberToObject",
+    "language": "c",
+    "function_name": "cJSON_AddNumberToObject",
+    "signature": "cJSON* cJSON_AddNumberToObject(cJSON * const object, const char * const name, const double number)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_AddNumberToObject with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON*",
+      "parameters": "cJSON * const object, const char * const name, const double number"
+    }
+  },
+  {
+    "name": "cjson_cJSON_AddObjectToObject",
+    "target_name": "cjson_cJSON_AddObjectToObject",
+    "language": "c",
+    "function_name": "cJSON_AddObjectToObject",
+    "signature": "cJSON* cJSON_AddObjectToObject(cJSON * const object, const char * const name)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_AddObjectToObject with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON*",
+      "parameters": "cJSON * const object, const char * const name"
+    }
+  },
+  {
+    "name": "cjson_cJSON_AddRawToObject",
+    "target_name": "cjson_cJSON_AddRawToObject",
+    "language": "c",
+    "function_name": "cJSON_AddRawToObject",
+    "signature": "cJSON* cJSON_AddRawToObject(cJSON * const object, const char * const name, const char * const raw)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_AddRawToObject with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON*",
+      "parameters": "cJSON * const object, const char * const name, const char * const raw"
+    }
+  },
+  {
+    "name": "cjson_cJSON_AddStringToObject",
+    "target_name": "cjson_cJSON_AddStringToObject",
+    "language": "c",
+    "function_name": "cJSON_AddStringToObject",
+    "signature": "cJSON* cJSON_AddStringToObject(cJSON * const object, const char * const name, const char * const string)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_AddStringToObject with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON*",
+      "parameters": "cJSON * const object, const char * const name, const char * const string"
+    }
+  },
+  {
+    "name": "cjson_cJSON_AddTrueToObject",
+    "target_name": "cjson_cJSON_AddTrueToObject",
+    "language": "c",
+    "function_name": "cJSON_AddTrueToObject",
+    "signature": "cJSON* cJSON_AddTrueToObject(cJSON * const object, const char * const name)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_AddTrueToObject with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON*",
+      "parameters": "cJSON * const object, const char * const name"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateRaw",
+    "target_name": "cjson_cJSON_CreateRaw",
+    "language": "c",
+    "function_name": "cJSON_CreateRaw",
+    "signature": "cJSON * cJSON_CreateRaw(const char *raw)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateRaw with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const char *raw"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateString",
+    "target_name": "cjson_cJSON_CreateString",
+    "language": "c",
+    "function_name": "cJSON_CreateString",
+    "signature": "cJSON * cJSON_CreateString(const char *string)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateString with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const char *string"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateStringReference",
+    "target_name": "cjson_cJSON_CreateStringReference",
+    "language": "c",
+    "function_name": "cJSON_CreateStringReference",
+    "signature": "cJSON * cJSON_CreateStringReference(const char *string)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateStringReference with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const char *string"
+    }
+  },
+  {
+    "name": "cjson_cJSON_GetObjectItem",
+    "target_name": "cjson_cJSON_GetObjectItem",
+    "language": "c",
+    "function_name": "cJSON_GetObjectItem",
+    "signature": "cJSON * cJSON_GetObjectItem(const cJSON * const object, const char * const string)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_GetObjectItem with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const cJSON * const object, const char * const string"
+    }
+  },
+  {
+    "name": "cjson_cJSON_GetObjectItemCaseSensitive",
+    "target_name": "cjson_cJSON_GetObjectItemCaseSensitive",
+    "language": "c",
+    "function_name": "cJSON_GetObjectItemCaseSensitive",
+    "signature": "cJSON * cJSON_GetObjectItemCaseSensitive(const cJSON * const object, const char * const string)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_GetObjectItemCaseSensitive with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const cJSON * const object, const char * const string"
+    }
+  },
+  {
+    "name": "cjson_cJSON_SetValuestring",
+    "target_name": "cjson_cJSON_SetValuestring",
+    "language": "c",
+    "function_name": "cJSON_SetValuestring",
+    "signature": "char* cJSON_SetValuestring(cJSON *object, const char *valuestring)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_DeleteItemFromObject",
+    "description": "Call cJSON_SetValuestring with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_DeleteItemFromObject.",
+    "analysis": {
+      "score": 55,
+      "reasons": [
+        "+40 raw/string input parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "char*",
+      "parameters": "cJSON *object, const char *valuestring"
+    }
+  },
+  {
+    "name": "cjson_cJSON_AddItemReferenceToObject",
+    "target_name": "cjson_cJSON_AddItemReferenceToObject",
+    "language": "c",
+    "function_name": "cJSON_AddItemReferenceToObject",
+    "signature": "cJSON_bool cJSON_AddItemReferenceToObject(cJSON *object, const char *string, cJSON *item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_AddItemReferenceToObject with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": 40,
+      "reasons": [
+        "+40 raw/string input parameter"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "cJSON *object, const char *string, cJSON *item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_AddItemToObject",
+    "target_name": "cjson_cJSON_AddItemToObject",
+    "language": "c",
+    "function_name": "cJSON_AddItemToObject",
+    "signature": "cJSON_bool cJSON_AddItemToObject(cJSON *object, const char *string, cJSON *item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_AddItemToObject with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": 40,
+      "reasons": [
+        "+40 raw/string input parameter"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "cJSON *object, const char *string, cJSON *item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_AddItemToObjectCS",
+    "target_name": "cjson_cJSON_AddItemToObjectCS",
+    "language": "c",
+    "function_name": "cJSON_AddItemToObjectCS",
+    "signature": "cJSON_bool cJSON_AddItemToObjectCS(cJSON *object, const char *string, cJSON *item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_AddItemToObjectCS with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": 40,
+      "reasons": [
+        "+40 raw/string input parameter"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "cJSON *object, const char *string, cJSON *item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_HasObjectItem",
+    "target_name": "cjson_cJSON_HasObjectItem",
+    "language": "c",
+    "function_name": "cJSON_HasObjectItem",
+    "signature": "cJSON_bool cJSON_HasObjectItem(const cJSON *object, const char *string)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_HasObjectItem with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": 40,
+      "reasons": [
+        "+40 raw/string input parameter"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "const cJSON *object, const char *string"
+    }
+  },
+  {
+    "name": "cjson_cJSON_Minify",
+    "target_name": "cjson_cJSON_Minify",
+    "language": "c",
+    "function_name": "cJSON_Minify",
+    "signature": "void cJSON_Minify(char *json)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_Minify with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": 40,
+      "reasons": [
+        "+40 raw/string input parameter"
+      ],
+      "return_type": "void",
+      "parameters": "char *json"
+    }
+  },
+  {
+    "name": "cjson_cJSON_ReplaceItemInObject",
+    "target_name": "cjson_cJSON_ReplaceItemInObject",
+    "language": "c",
+    "function_name": "cJSON_ReplaceItemInObject",
+    "signature": "cJSON_bool cJSON_ReplaceItemInObject(cJSON *object,const char *string,cJSON *newitem)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_ReplaceItemInObject with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": 40,
+      "reasons": [
+        "+40 raw/string input parameter"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "cJSON *object,const char *string,cJSON *newitem"
+    }
+  },
+  {
+    "name": "cjson_cJSON_ReplaceItemInObjectCaseSensitive",
+    "target_name": "cjson_cJSON_ReplaceItemInObjectCaseSensitive",
+    "language": "c",
+    "function_name": "cJSON_ReplaceItemInObjectCaseSensitive",
+    "signature": "cJSON_bool cJSON_ReplaceItemInObjectCaseSensitive(cJSON *object,const char *string,cJSON *newitem)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_ReplaceItemInObjectCaseSensitive with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": 40,
+      "reasons": [
+        "+40 raw/string input parameter"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "cJSON *object,const char *string,cJSON *newitem"
+    }
+  },
+  {
+    "name": "cjson_cJSON_malloc",
+    "target_name": "cjson_cJSON_malloc",
+    "language": "c",
+    "function_name": "cJSON_malloc",
+    "signature": "void * cJSON_malloc(size_t size)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_free",
+    "description": "Call cJSON_malloc with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_free.",
+    "analysis": {
+      "score": 40,
+      "reasons": [
+        "+25 primitive length/count parameter",
+        "+15 pointer-like return type"
+      ],
+      "return_type": "void *",
+      "parameters": "size_t size"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateArray",
+    "target_name": "cjson_cJSON_CreateArray",
+    "language": "c",
+    "function_name": "cJSON_CreateArray",
+    "signature": "cJSON * cJSON_CreateArray(void)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateArray with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 15,
+      "reasons": [
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "void"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateBool",
+    "target_name": "cjson_cJSON_CreateBool",
+    "language": "c",
+    "function_name": "cJSON_CreateBool",
+    "signature": "cJSON * cJSON_CreateBool(cJSON_bool boolean)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateBool with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 15,
+      "reasons": [
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "cJSON_bool boolean"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateFalse",
+    "target_name": "cjson_cJSON_CreateFalse",
+    "language": "c",
+    "function_name": "cJSON_CreateFalse",
+    "signature": "cJSON * cJSON_CreateFalse(void)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateFalse with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 15,
+      "reasons": [
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "void"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateNull",
+    "target_name": "cjson_cJSON_CreateNull",
+    "language": "c",
+    "function_name": "cJSON_CreateNull",
+    "signature": "cJSON * cJSON_CreateNull(void)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateNull with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 15,
+      "reasons": [
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "void"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateNumber",
+    "target_name": "cjson_cJSON_CreateNumber",
+    "language": "c",
+    "function_name": "cJSON_CreateNumber",
+    "signature": "cJSON * cJSON_CreateNumber(double num)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateNumber with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 15,
+      "reasons": [
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "double num"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateObject",
+    "target_name": "cjson_cJSON_CreateObject",
+    "language": "c",
+    "function_name": "cJSON_CreateObject",
+    "signature": "cJSON * cJSON_CreateObject(void)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateObject with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 15,
+      "reasons": [
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "void"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateTrue",
+    "target_name": "cjson_cJSON_CreateTrue",
+    "language": "c",
+    "function_name": "cJSON_CreateTrue",
+    "signature": "cJSON * cJSON_CreateTrue(void)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateTrue with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": 15,
+      "reasons": [
+        "+15 pointer-like return type"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "void"
+    }
+  },
+  {
+    "name": "cjson_cJSON_GetErrorPtr",
+    "target_name": "cjson_cJSON_GetErrorPtr",
+    "language": "c",
+    "function_name": "cJSON_GetErrorPtr",
+    "signature": "const char * cJSON_GetErrorPtr(void)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_DeleteItemFromObject",
+    "description": "Call cJSON_GetErrorPtr with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_DeleteItemFromObject.",
+    "analysis": {
+      "score": 15,
+      "reasons": [
+        "+15 pointer-like return type"
+      ],
+      "return_type": "const char *",
+      "parameters": "void"
+    }
+  },
+  {
+    "name": "cjson_cJSON_Version",
+    "target_name": "cjson_cJSON_Version",
+    "language": "c",
+    "function_name": "cJSON_Version",
+    "signature": "const char* cJSON_Version(void)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_DeleteItemFromObject",
+    "description": "Call cJSON_Version with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_DeleteItemFromObject.",
+    "analysis": {
+      "score": 15,
+      "reasons": [
+        "+15 pointer-like return type"
+      ],
+      "return_type": "const char*",
+      "parameters": "void"
+    }
+  },
+  {
+    "name": "cjson_cJSON_DetachItemFromArray",
+    "target_name": "cjson_cJSON_DetachItemFromArray",
+    "language": "c",
+    "function_name": "cJSON_DetachItemFromArray",
+    "signature": "cJSON * cJSON_DetachItemFromArray(cJSON *array, int which)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_DetachItemFromArray with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": -20,
+      "reasons": [
+        "+25 primitive length/count parameter",
+        "+20 parser/decoder-style function name",
+        "+15 pointer-like return type",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "cJSON *array, int which"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateDoubleArray",
+    "target_name": "cjson_cJSON_CreateDoubleArray",
+    "language": "c",
+    "function_name": "cJSON_CreateDoubleArray",
+    "signature": "cJSON * cJSON_CreateDoubleArray(const double *numbers, int count)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateDoubleArray with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": -40,
+      "reasons": [
+        "+25 primitive length/count parameter",
+        "+15 pointer-like return type",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const double *numbers, int count"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateFloatArray",
+    "target_name": "cjson_cJSON_CreateFloatArray",
+    "language": "c",
+    "function_name": "cJSON_CreateFloatArray",
+    "signature": "cJSON * cJSON_CreateFloatArray(const float *numbers, int count)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateFloatArray with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": -40,
+      "reasons": [
+        "+25 primitive length/count parameter",
+        "+15 pointer-like return type",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const float *numbers, int count"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateIntArray",
+    "target_name": "cjson_cJSON_CreateIntArray",
+    "language": "c",
+    "function_name": "cJSON_CreateIntArray",
+    "signature": "cJSON * cJSON_CreateIntArray(const int *numbers, int count)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateIntArray with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": -40,
+      "reasons": [
+        "+25 primitive length/count parameter",
+        "+15 pointer-like return type",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const int *numbers, int count"
+    }
+  },
+  {
+    "name": "cjson_cJSON_GetArrayItem",
+    "target_name": "cjson_cJSON_GetArrayItem",
+    "language": "c",
+    "function_name": "cJSON_GetArrayItem",
+    "signature": "cJSON * cJSON_GetArrayItem(const cJSON *array, int index)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_GetArrayItem with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": -40,
+      "reasons": [
+        "+25 primitive length/count parameter",
+        "+15 pointer-like return type",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const cJSON *array, int index"
+    }
+  },
+  {
+    "name": "cjson_cJSON_PrintBuffered",
+    "target_name": "cjson_cJSON_PrintBuffered",
+    "language": "c",
+    "function_name": "cJSON_PrintBuffered",
+    "signature": "char * cJSON_PrintBuffered(const cJSON *item, int prebuffer, cJSON_bool fmt)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_DeleteItemFromObject",
+    "description": "Call cJSON_PrintBuffered with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_DeleteItemFromObject.",
+    "analysis": {
+      "score": -40,
+      "reasons": [
+        "+25 primitive length/count parameter",
+        "+15 pointer-like return type",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "char *",
+      "parameters": "const cJSON *item, int prebuffer, cJSON_bool fmt"
+    }
+  },
+  {
+    "name": "cjson_cJSON_InsertItemInArray",
+    "target_name": "cjson_cJSON_InsertItemInArray",
+    "language": "c",
+    "function_name": "cJSON_InsertItemInArray",
+    "signature": "cJSON_bool cJSON_InsertItemInArray(cJSON *array, int which, cJSON *newitem)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_InsertItemInArray with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -55,
+      "reasons": [
+        "+25 primitive length/count parameter",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "cJSON *array, int which, cJSON *newitem"
+    }
+  },
+  {
+    "name": "cjson_cJSON_ReplaceItemInArray",
+    "target_name": "cjson_cJSON_ReplaceItemInArray",
+    "language": "c",
+    "function_name": "cJSON_ReplaceItemInArray",
+    "signature": "cJSON_bool cJSON_ReplaceItemInArray(cJSON *array, int which, cJSON *newitem)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_ReplaceItemInArray with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -55,
+      "reasons": [
+        "+25 primitive length/count parameter",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "cJSON *array, int which, cJSON *newitem"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateArrayReference",
+    "target_name": "cjson_cJSON_CreateArrayReference",
+    "language": "c",
+    "function_name": "cJSON_CreateArrayReference",
+    "signature": "cJSON * cJSON_CreateArrayReference(const cJSON *child)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateArrayReference with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": -65,
+      "reasons": [
+        "+15 pointer-like return type",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const cJSON *child"
+    }
+  },
+  {
+    "name": "cjson_cJSON_CreateObjectReference",
+    "target_name": "cjson_cJSON_CreateObjectReference",
+    "language": "c",
+    "function_name": "cJSON_CreateObjectReference",
+    "signature": "cJSON * cJSON_CreateObjectReference(const cJSON *child)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_CreateObjectReference with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": -65,
+      "reasons": [
+        "+15 pointer-like return type",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const cJSON *child"
+    }
+  },
+  {
+    "name": "cjson_cJSON_DetachItemViaPointer",
+    "target_name": "cjson_cJSON_DetachItemViaPointer",
+    "language": "c",
+    "function_name": "cJSON_DetachItemViaPointer",
+    "signature": "cJSON * cJSON_DetachItemViaPointer(cJSON *parent, cJSON * const item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_DetachItemViaPointer with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": -65,
+      "reasons": [
+        "+15 pointer-like return type",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "cJSON *parent, cJSON * const item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_Duplicate",
+    "target_name": "cjson_cJSON_Duplicate",
+    "language": "c",
+    "function_name": "cJSON_Duplicate",
+    "signature": "cJSON * cJSON_Duplicate(const cJSON *item, cJSON_bool recurse)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_Delete",
+    "description": "Call cJSON_Duplicate with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+    "analysis": {
+      "score": -65,
+      "reasons": [
+        "+15 pointer-like return type",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON *",
+      "parameters": "const cJSON *item, cJSON_bool recurse"
+    }
+  },
+  {
+    "name": "cjson_cJSON_GetStringValue",
+    "target_name": "cjson_cJSON_GetStringValue",
+    "language": "c",
+    "function_name": "cJSON_GetStringValue",
+    "signature": "char * cJSON_GetStringValue(const cJSON * const item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_DeleteItemFromObject",
+    "description": "Call cJSON_GetStringValue with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_DeleteItemFromObject.",
+    "analysis": {
+      "score": -65,
+      "reasons": [
+        "+15 pointer-like return type",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "char *",
+      "parameters": "const cJSON * const item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_Print",
+    "target_name": "cjson_cJSON_Print",
+    "language": "c",
+    "function_name": "cJSON_Print",
+    "signature": "char * cJSON_Print(const cJSON *item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_DeleteItemFromObject",
+    "description": "Call cJSON_Print with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_DeleteItemFromObject.",
+    "analysis": {
+      "score": -65,
+      "reasons": [
+        "+15 pointer-like return type",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "char *",
+      "parameters": "const cJSON *item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_PrintUnformatted",
+    "target_name": "cjson_cJSON_PrintUnformatted",
+    "language": "c",
+    "function_name": "cJSON_PrintUnformatted",
+    "signature": "char * cJSON_PrintUnformatted(const cJSON *item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": "cJSON_DeleteItemFromObject",
+    "description": "Call cJSON_PrintUnformatted with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_DeleteItemFromObject.",
+    "analysis": {
+      "score": -65,
+      "reasons": [
+        "+15 pointer-like return type",
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "char *",
+      "parameters": "const cJSON *item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_AddItemReferenceToArray",
+    "target_name": "cjson_cJSON_AddItemReferenceToArray",
+    "language": "c",
+    "function_name": "cJSON_AddItemReferenceToArray",
+    "signature": "cJSON_bool cJSON_AddItemReferenceToArray(cJSON *array, cJSON *item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_AddItemReferenceToArray with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "cJSON *array, cJSON *item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_AddItemToArray",
+    "target_name": "cjson_cJSON_AddItemToArray",
+    "language": "c",
+    "function_name": "cJSON_AddItemToArray",
+    "signature": "cJSON_bool cJSON_AddItemToArray(cJSON *array, cJSON *item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_AddItemToArray with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "cJSON *array, cJSON *item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_Compare",
+    "target_name": "cjson_cJSON_Compare",
+    "language": "c",
+    "function_name": "cJSON_Compare",
+    "signature": "cJSON_bool cJSON_Compare(const cJSON * const a, const cJSON * const b, const cJSON_bool case_sensitive)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_Compare with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "const cJSON * const a, const cJSON * const b, const cJSON_bool case_sensitive"
+    }
+  },
+  {
+    "name": "cjson_cJSON_GetArraySize",
+    "target_name": "cjson_cJSON_GetArraySize",
+    "language": "c",
+    "function_name": "cJSON_GetArraySize",
+    "signature": "int cJSON_GetArraySize(const cJSON *array)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_GetArraySize with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "int",
+      "parameters": "const cJSON *array"
+    }
+  },
+  {
+    "name": "cjson_cJSON_GetNumberValue",
+    "target_name": "cjson_cJSON_GetNumberValue",
+    "language": "c",
+    "function_name": "cJSON_GetNumberValue",
+    "signature": "double cJSON_GetNumberValue(const cJSON * const item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_GetNumberValue with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "double",
+      "parameters": "const cJSON * const item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_InitHooks",
+    "target_name": "cjson_cJSON_InitHooks",
+    "language": "c",
+    "function_name": "cJSON_InitHooks",
+    "signature": "void cJSON_InitHooks(cJSON_Hooks* hooks)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_InitHooks with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "void",
+      "parameters": "cJSON_Hooks* hooks"
+    }
+  },
+  {
+    "name": "cjson_cJSON_IsArray",
+    "target_name": "cjson_cJSON_IsArray",
+    "language": "c",
+    "function_name": "cJSON_IsArray",
+    "signature": "cJSON_bool cJSON_IsArray(const cJSON * const item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_IsArray with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "const cJSON * const item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_IsBool",
+    "target_name": "cjson_cJSON_IsBool",
+    "language": "c",
+    "function_name": "cJSON_IsBool",
+    "signature": "cJSON_bool cJSON_IsBool(const cJSON * const item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_IsBool with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "const cJSON * const item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_IsFalse",
+    "target_name": "cjson_cJSON_IsFalse",
+    "language": "c",
+    "function_name": "cJSON_IsFalse",
+    "signature": "cJSON_bool cJSON_IsFalse(const cJSON * const item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_IsFalse with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "const cJSON * const item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_IsInvalid",
+    "target_name": "cjson_cJSON_IsInvalid",
+    "language": "c",
+    "function_name": "cJSON_IsInvalid",
+    "signature": "cJSON_bool cJSON_IsInvalid(const cJSON * const item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_IsInvalid with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "const cJSON * const item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_IsNull",
+    "target_name": "cjson_cJSON_IsNull",
+    "language": "c",
+    "function_name": "cJSON_IsNull",
+    "signature": "cJSON_bool cJSON_IsNull(const cJSON * const item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_IsNull with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "const cJSON * const item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_IsNumber",
+    "target_name": "cjson_cJSON_IsNumber",
+    "language": "c",
+    "function_name": "cJSON_IsNumber",
+    "signature": "cJSON_bool cJSON_IsNumber(const cJSON * const item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_IsNumber with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "const cJSON * const item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_IsObject",
+    "target_name": "cjson_cJSON_IsObject",
+    "language": "c",
+    "function_name": "cJSON_IsObject",
+    "signature": "cJSON_bool cJSON_IsObject(const cJSON * const item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_IsObject with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "const cJSON * const item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_IsRaw",
+    "target_name": "cjson_cJSON_IsRaw",
+    "language": "c",
+    "function_name": "cJSON_IsRaw",
+    "signature": "cJSON_bool cJSON_IsRaw(const cJSON * const item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_IsRaw with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "const cJSON * const item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_IsString",
+    "target_name": "cjson_cJSON_IsString",
+    "language": "c",
+    "function_name": "cJSON_IsString",
+    "signature": "cJSON_bool cJSON_IsString(const cJSON * const item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_IsString with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "const cJSON * const item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_IsTrue",
+    "target_name": "cjson_cJSON_IsTrue",
+    "language": "c",
+    "function_name": "cJSON_IsTrue",
+    "signature": "cJSON_bool cJSON_IsTrue(const cJSON * const item)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_IsTrue with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "const cJSON * const item"
+    }
+  },
+  {
+    "name": "cjson_cJSON_ReplaceItemViaPointer",
+    "target_name": "cjson_cJSON_ReplaceItemViaPointer",
+    "language": "c",
+    "function_name": "cJSON_ReplaceItemViaPointer",
+    "signature": "cJSON_bool cJSON_ReplaceItemViaPointer(cJSON * const parent, cJSON * const item, cJSON * replacement)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_ReplaceItemViaPointer with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "cJSON_bool",
+      "parameters": "cJSON * const parent, cJSON * const item, cJSON * replacement"
+    }
+  },
+  {
+    "name": "cjson_cJSON_SetNumberHelper",
+    "target_name": "cjson_cJSON_SetNumberHelper",
+    "language": "c",
+    "function_name": "cJSON_SetNumberHelper",
+    "signature": "double cJSON_SetNumberHelper(cJSON *object, double number)",
+    "header": "cJSON.h",
+    "source_files": [
+      "examples/cjson_lib/cJSON.c"
+    ],
+    "include_dirs": [
+      "examples/cjson_lib"
+    ],
+    "seed_corpus": "examples/cjson_lib/seed_corpus",
+    "cleanup_function": null,
+    "description": "Call cJSON_SetNumberHelper with fuzz-generated input according to its signature.",
+    "analysis": {
+      "score": -80,
+      "reasons": [
+        "-30 complex object pointer without raw/string input",
+        "-50 appears to require existing library object without raw input"
+      ],
+      "return_type": "double",
+      "parameters": "cJSON *object, double number"
+    }
+  }
+]

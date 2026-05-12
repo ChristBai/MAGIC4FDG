@@ -1,12 +1,17 @@
-#include <cstddef>
 #include <cstdint>
-#include <string>
+#include <cstddef>
+#include <vector>
 
-#include "tiny.h"
+#include "cJSON.h"
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
-    std::string input(reinterpret_cast<const char*>(data), size);
+    std::vector<char> input(data, data + size);
     input.push_back('\0');
-    parse_int(input.c_str());
+
+    cJSON* root = cJSON_ParseWithLength(input.data(), size);
+    if (root != nullptr) {
+        cJSON_Delete(root);
+    }
+
     return 0;
 }

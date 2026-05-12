@@ -1,0 +1,29 @@
+{
+  "name": "cjson_cJSON_DetachItemFromArray",
+  "target_name": "cjson_cJSON_DetachItemFromArray",
+  "language": "c",
+  "function_name": "cJSON_DetachItemFromArray",
+  "signature": "cJSON * cJSON_DetachItemFromArray(cJSON *array, int which)",
+  "header": "cJSON.h",
+  "source_files": [
+    "examples/cjson_lib/cJSON.c"
+  ],
+  "include_dirs": [
+    "examples/cjson_lib"
+  ],
+  "seed_corpus": "examples/cjson_lib/seed_corpus",
+  "cleanup_function": "cJSON_Delete",
+  "description": "Call cJSON_DetachItemFromArray with fuzz-generated input according to its signature. If it returns an allocated object, release it with cJSON_Delete.",
+  "analysis": {
+    "score": -20,
+    "reasons": [
+      "+25 primitive length/count parameter",
+      "+20 parser/decoder-style function name",
+      "+15 pointer-like return type",
+      "-30 complex object pointer without raw/string input",
+      "-50 appears to require existing library object without raw input"
+    ],
+    "return_type": "cJSON *",
+    "parameters": "cJSON *array, int which"
+  }
+}
