@@ -88,20 +88,8 @@ echo "seed corpus file-list hash before: ${seed_hash_before}"
 "${CC}" --version
 cd "${ROOT_DIR}"
 
-object_files=()
-for source_file in "${SOURCE_FILES[@]}"; do
-  object_file="${RUN_DIR}/$(basename "${source_file}").o"
-  object_files+=("${object_file}")
-
-  case "${source_file}" in
-    *.c)
-      "${CC}" -g -O1 -fsanitize=address "${INCLUDE_ARGS[@]}" -c "${source_file}" -o "${object_file}"
-      ;;
-    *)
-      "${CXX}" -std=c++17 -g -O1 -fsanitize=address "${INCLUDE_ARGS[@]}" -c "${source_file}" -o "${object_file}"
-      ;;
-  esac
-done
+source "${ROOT_DIR}/scripts/compile_target.sh"
+compile_target_objects "${RUN_DIR}" -fsanitize=address
 
 if ! "${CXX}" \
   -std=c++17 \

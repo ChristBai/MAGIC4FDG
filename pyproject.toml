@@ -1,0 +1,22 @@
+[project]
+name = "fuzz-driver-gen-mvp"
+version = "0.1.0"
+description = "LLM-powered LibFuzzer fuzz driver generator for C/C++ libraries"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

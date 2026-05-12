@@ -25,7 +25,9 @@ TEMPLATE_PATH = ROOT / "prompts" / "libfuzzer_driver_prompt.txt"
 PROMPT_OUTPUT_PATH = ROOT / "generated" / "prompt.txt"
 DRIVER_OUTPUT_PATH = ROOT / "generated" / "fuzz_driver.cpp"
 RAW_RESPONSE_PATH = ROOT / "generated" / "llm_response.json"
-OPENAI_RESPONSES_URL = "https://ai-api-cn.db-kj.com/v1/responses"
+OPENAI_RESPONSES_URL = os.environ.get(
+    "OPENAI_BASE_URL", "https://api.openai.com/v1/responses"
+)
 
 
 def format_list(values: list[str]) -> str:
@@ -105,12 +107,17 @@ def call_openai_responses(
 
     try:
         with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
-            return json.loads(response.read().decode("utf-8"))
+            raw = response.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"OpenAI API request failed with HTTP {exc.code}: {body}") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError(f"OpenAI API request failed: {exc}") from exc
+
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"OpenAI API returned invalid JSON: {exc}") from exc
 
 
 def main() -> int:

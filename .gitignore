@@ -1,6 +1,12 @@
 build/
 __pycache__/
 *.pyc
+*.o
+*.dSYM/
+.DS_Store
+.env
+venv/
+.venv/
 generated/fuzz_driver
 generated/coverage/
 generated/llm_response.json

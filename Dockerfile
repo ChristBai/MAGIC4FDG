@@ -2,7 +2,12 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN sed -i 's|http://ports.ubuntu.com/ubuntu-ports|http://mirrors.ustc.edu.cn/ubuntu-ports|g' /etc/apt/sources.list \
+ARG APT_MIRROR=""
+
+RUN if [ -n "${APT_MIRROR}" ]; then \
+      sed -i "s|http://archive.ubuntu.com/ubuntu|${APT_MIRROR}|g" /etc/apt/sources.list && \
+      sed -i "s|http://ports.ubuntu.com/ubuntu-ports|${APT_MIRROR}|g" /etc/apt/sources.list; \
+    fi \
     && apt-get -o Acquire::Retries=5 update \
     && apt-get install -y --no-install-recommends \
     build-essential \

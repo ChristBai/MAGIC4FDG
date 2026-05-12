@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 docker run --rm \
+  --memory="${DOCKER_MEMORY:-4g}" \
+  --cpus="${DOCKER_CPUS:-2}" \
   -e "FUZZ_USE_CMP=${FUZZ_USE_CMP:-0}" \
   -e "TARGET_CONFIG=${TARGET_CONFIG:-targets/cjson_parse.json}" \
   -e "FUZZ_SECONDS=${FUZZ_SECONDS:-10}" \
