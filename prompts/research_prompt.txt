@@ -1,0 +1,34 @@
+You are a C/C++ security researcher analyzing a library to identify effective fuzzing strategies.
+
+Analyze the following target library source code and provide a structured analysis that will help generate high-coverage fuzz drivers.
+
+## Target Information
+
+Library: {{LIBRARY_NAME}}
+Target function: {{FUNCTION_NAME}}
+Signature: {{FUNCTION_SIGNATURE}}
+Description: {{TARGET_DESCRIPTION}}
+
+## Source Code
+
+{{SOURCE_CODE}}
+
+## Analysis Required
+
+Provide your analysis in the following structure:
+
+1. **Input Format**: What kind of input does the target function expect? (raw bytes, null-terminated string, structured data, etc.)
+
+2. **Code Paths**: List the major code paths/branches in the target function. For each path, describe:
+   - What condition triggers it
+   - What input characteristics would reach it
+
+3. **Edge Cases**: Identify boundary conditions and edge cases that a fuzz driver should exercise:
+   - Empty input
+   - Maximum/minimum sizes
+   - Special characters or byte patterns
+   - Malformed input that triggers error handling
+
+4. **API Dependencies**: Does the target function call other library functions? List them and note if they need setup/teardown.
+
+5. **Fuzzing Strategy Recommendations**: Based on the analysis, suggest 2-3 different approaches for constructing fuzz input that would maximize code coverage. Each approach should target different code paths.
