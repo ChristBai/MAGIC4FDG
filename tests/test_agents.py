@@ -93,6 +93,90 @@ class TestResearchAgent(unittest.TestCase):
         mock_llm.invoke.assert_called_once()
 
 
+class TestGenerationAgent(unittest.TestCase):
+    def test_build_prompt_basic(self) -> None:
+        from agents.generation import _build_prompt
+
+        config = {
+            "target_name": "cjson",
+            "function_name": "cJSON_Parse",
+            "signature": "cJSON *cJSON_Parse(const char *value)",
+            "header": "cJSON.h",
+            "description": "Parse JSON",
+            "language": "C",
+            "cleanup_function": "cJSON_Delete",
+            "source_files": ["cJSON.c"],
+            "include_dirs": ["."],
+            "seed_corpus": "seed/",
+        }
+        prompt = _build_prompt(config, "basic", "some research")
+        self.assertIn("cJSON_Parse", prompt)
+        self.assertNotIn("Additional Context", prompt)
+
+    def test_build_prompt_research(self) -> None:
+        from agents.generation import _build_prompt
+
+        config = {
+            "target_name": "cjson",
+            "function_name": "cJSON_Parse",
+            "signature": "cJSON *cJSON_Parse(const char *value)",
+            "header": "cJSON.h",
+            "description": "Parse JSON",
+            "language": "C",
+            "cleanup_function": "cJSON_Delete",
+            "source_files": ["cJSON.c"],
+            "include_dirs": ["."],
+            "seed_corpus": "seed/",
+        }
+        prompt = _build_prompt(config, "research", "Found 5 branches in parser")
+        self.assertIn("Additional Context", prompt)
+        self.assertIn("Found 5 branches", prompt)
+
+    def test_make_variant_id(self) -> None:
+        from agents.generation import _make_variant_id
+
+        config = {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.4}
+        vid = _make_variant_id(config)
+        self.assertIn("basic", vid)
+        self.assertIn("t04", vid)
+
+    @patch("agents.generation.create_variant_llm")
+    def test_generation_node_produces_variants(self, mock_create: MagicMock) -> None:
+        from agents.generation import generation_node
+
+        mock_llm = MagicMock()
+        mock_response = MagicMock()
+        mock_response.content = "```cpp\nint main() {}\n```"
+        mock_llm.invoke.return_value = mock_response
+        mock_create.return_value = mock_llm
+
+        state = {
+            "target_config": {
+                "target_name": "test",
+                "function_name": "test_func",
+                "signature": "void test_func(const char *s)",
+                "header": "test.h",
+                "description": "test",
+                "language": "C",
+                "cleanup_function": "",
+                "source_files": ["test.c"],
+                "include_dirs": ["."],
+                "seed_corpus": "seed/",
+            },
+            "research_summary": "analysis here",
+            "variant_matrix": [
+                {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
+                {"model": "gpt-4o", "prompt_strategy": "research", "temperature": 0.7},
+            ],
+            "messages": [],
+        }
+
+        result = generation_node(state)
+        self.assertEqual(len(result["variants"]), 2)
+        self.assertEqual(result["variants"][0]["compile_status"], "pending")
+        self.assertIn("int main()", result["variants"][0]["source_code"])
+
+
 class TestGraph(unittest.TestCase):
     def test_graph_compiles(self) -> None:
         from agents.graph import compile_graph
