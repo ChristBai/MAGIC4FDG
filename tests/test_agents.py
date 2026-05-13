@@ -93,6 +93,78 @@ class TestResearchAgent(unittest.TestCase):
         mock_llm.invoke.assert_called_once()
 
 
+class TestPatchingAgent(unittest.TestCase):
+    def test_render_patch_prompt(self) -> None:
+        from agents.patching import _render_patch_prompt
+
+        config = {
+            "function_name": "cJSON_Parse",
+            "signature": "cJSON *cJSON_Parse(const char *value)",
+            "header": "cJSON.h",
+            "include_dirs": ["examples/cjson_lib"],
+        }
+        prompt = _render_patch_prompt(config, "bad code", "error: unknown type")
+        self.assertIn("cJSON_Parse", prompt)
+        self.assertIn("bad code", prompt)
+        self.assertIn("error: unknown type", prompt)
+        self.assertNotIn("{{", prompt)
+
+    @patch("agents.patching.compile_driver")
+    def test_patch_variant_compiles_first_try(self, mock_compile: MagicMock) -> None:
+        from agents.patching import _patch_single_variant
+
+        mock_compile.return_value = (True, "")
+
+        variant = {
+            "id": "test_v",
+            "config": {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
+            "source_code": "int main() {}",
+            "compile_status": "pending",
+            "compile_errors": "",
+            "patch_attempts": 0,
+            "coverage_pct": 0.0,
+            "branch_coverage_pct": 0.0,
+            "uncovered_lines": [],
+            "unique_coverage": [],
+        }
+        messages: list[str] = []
+        result = _patch_single_variant(variant, {}, 3, messages)
+        self.assertEqual(result["compile_status"], "ok")
+        self.assertIn("first try", messages[0])
+
+    @patch("agents.patching.create_llm")
+    @patch("agents.patching.compile_driver")
+    def test_patch_variant_fixes_after_retry(self, mock_compile: MagicMock, mock_create_llm: MagicMock) -> None:
+        from agents.patching import _patch_single_variant
+
+        mock_compile.side_effect = [
+            (False, "error: missing header"),
+            (True, ""),
+        ]
+        mock_llm = MagicMock()
+        mock_response = MagicMock()
+        mock_response.content = "```cpp\n#include <cstdint>\nint main() {}\n```"
+        mock_llm.invoke.return_value = mock_response
+        mock_create_llm.return_value = mock_llm
+
+        variant = {
+            "id": "test_v",
+            "config": {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
+            "source_code": "int main() {}",
+            "compile_status": "pending",
+            "compile_errors": "",
+            "patch_attempts": 0,
+            "coverage_pct": 0.0,
+            "branch_coverage_pct": 0.0,
+            "uncovered_lines": [],
+            "unique_coverage": [],
+        }
+        messages: list[str] = []
+        result = _patch_single_variant(variant, {"function_name": "f", "signature": "void f()", "header": "h.h", "include_dirs": []}, 3, messages)
+        self.assertEqual(result["compile_status"], "ok")
+        self.assertEqual(result["patch_attempts"], 1)
+
+
 class TestGenerationAgent(unittest.TestCase):
     def test_build_prompt_basic(self) -> None:
         from agents.generation import _build_prompt

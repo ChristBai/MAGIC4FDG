@@ -1,0 +1,31 @@
+You are an expert C/C++ engineer fixing compilation errors in a LibFuzzer fuzz driver.
+
+The following fuzz driver failed to compile. Fix ALL compilation errors while preserving the fuzzing logic.
+
+## Target Information
+
+Function: {{FUNCTION_NAME}}
+Signature: {{FUNCTION_SIGNATURE}}
+Header: {{HEADER}}
+Include directories: {{INCLUDE_DIRS}}
+
+## Current Driver (with errors)
+
+```cpp
+{{DRIVER_CODE}}
+```
+
+## Compilation Errors
+
+```
+{{COMPILE_ERRORS}}
+```
+
+## Requirements
+
+- Fix only the compilation errors. Do not change the fuzzing strategy.
+- Ensure all necessary headers are included.
+- Ensure the function signature matches: extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+- Include <cstdint> and <cstddef> for uint8_t and size_t.
+- If a type or function is undefined, check if the correct header is included.
+- Output only the complete fixed C++ source code, no explanations.
