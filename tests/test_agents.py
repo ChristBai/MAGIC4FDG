@@ -257,5 +257,129 @@ class TestGraph(unittest.TestCase):
         self.assertIsNotNone(graph)
 
 
+class TestCoverageAgent(unittest.TestCase):
+    def test_parse_cfg_output(self) -> None:
+        from agents.coverage import _parse_cfg_output
+
+        cfg_text = """entry:
+  br label %loop
+loop:
+  br i1 %cond, label %body, label %exit
+body:
+  br label %loop
+exit:
+  ret void
+"""
+        graph = _parse_cfg_output(cfg_text)
+        self.assertIn("entry", graph)
+        self.assertIn("loop", graph["entry"])
+        self.assertIn("body", graph.get("loop", set()))
+        self.assertIn("exit", graph.get("loop", set()))
+
+    def test_reachable_blocks(self) -> None:
+        from agents.coverage import _reachable_blocks
+
+        graph = {
+            "entry": {"a", "b"},
+            "a": {"c"},
+            "b": set(),
+            "c": set(),
+            "unreachable": {"d"},
+            "d": set(),
+        }
+        reachable = _reachable_blocks(graph, "entry")
+        self.assertIn("entry", reachable)
+        self.assertIn("a", reachable)
+        self.assertIn("b", reachable)
+        self.assertIn("c", reachable)
+        self.assertNotIn("unreachable", reachable)
+        self.assertNotIn("d", reachable)
+
+    def test_mark_reachability(self) -> None:
+        from agents.coverage import _mark_reachability
+
+        uncovered = [
+            {"file": "test.c", "line_no": 10, "count": 0, "reachable": True},
+            {"file": "test.c", "line_no": 20, "count": 0, "reachable": True},
+            {"file": "test.c", "line_no": 30, "count": 0, "reachable": True},
+        ]
+        reachable_lines = {10, 30, 40, 50}
+        result = _mark_reachability(uncovered, reachable_lines)
+        self.assertTrue(result[0]["reachable"])
+        self.assertFalse(result[1]["reachable"])
+        self.assertTrue(result[2]["reachable"])
+
+    def test_extract_uncovered_lines(self) -> None:
+        from agents.coverage import _extract_uncovered_lines
+
+        report = {
+            "coverage": {
+                "files": [
+                    {
+                        "filename": "test.c",
+                        "summary": {"lines": {"count": 10, "covered": 7}},
+                        "segments": [
+                            [5, 1, 0, True, True],
+                            [10, 1, 3, True, True],
+                        ],
+                    }
+                ]
+            }
+        }
+        uncovered = _extract_uncovered_lines(report)
+        self.assertEqual(len(uncovered), 1)
+        self.assertEqual(uncovered[0]["line_no"], 5)
+
+    @patch("agents.coverage.run_fuzz_with_coverage")
+    @patch("agents.coverage._analyze_reachability")
+    def test_coverage_node(self, mock_reachability: MagicMock, mock_fuzz: MagicMock) -> None:
+        from agents.coverage import coverage_node
+
+        mock_reachability.return_value = {10, 20, 30}
+        mock_fuzz.return_value = {
+            "coverage": {
+                "totals": {
+                    "lines": {"count": 100, "covered": 65},
+                    "branches": {"count": 20, "covered": 12},
+                },
+                "files": [],
+            }
+        }
+
+        state = {
+            "target_config": {
+                "target_name": "test",
+                "source_files": ["test.c"],
+                "include_dirs": ["."],
+            },
+            "variants": [
+                {
+                    "id": "test_v1",
+                    "config": {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
+                    "source_code": "int main() {}",
+                    "compile_status": "ok",
+                    "compile_errors": "",
+                    "patch_attempts": 0,
+                    "coverage_pct": 0.0,
+                    "branch_coverage_pct": 0.0,
+                    "uncovered_lines": [],
+                    "unique_coverage": [],
+                },
+            ],
+            "fuzz_seconds": 10,
+            "messages": [],
+            "iteration": 0,
+            "target_coverage": 70.0,
+            "max_iterations": 3,
+        }
+
+        result = coverage_node(state)
+        self.assertEqual(result["iteration"], 1)
+        self.assertAlmostEqual(result["best_coverage"], 65.0)
+        self.assertEqual(result["variants"][0]["coverage_pct"], 65.0)
+        self.assertAlmostEqual(result["variants"][0]["branch_coverage_pct"], 60.0)
+        self.assertIn("[Coverage]", result["messages"][0])
+
+
 if __name__ == "__main__":
     unittest.main()
