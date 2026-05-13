@@ -1,0 +1,32 @@
+You are an expert fuzz driver engineer. Your task is to analyze multiple fuzz driver variants and their coverage results, then produce a single improved fuzz driver that maximizes code coverage.
+
+## Target Information
+
+Function: {{FUNCTION_NAME}}
+Signature: {{FUNCTION_SIGNATURE}}
+Header: {{HEADER}}
+Language: {{LANGUAGE}}
+
+## Variant Coverage Analysis
+
+{{VARIANT_ANALYSIS}}
+
+## Uncovered Reachable Lines
+
+The following lines are reachable from the fuzz entry point but not yet covered by any variant:
+
+{{UNCOVERED_REACHABLE}}
+
+## Requirements
+
+1. Analyze what each variant does well (unique coverage contributions).
+2. Identify input patterns that trigger the uncovered reachable lines.
+3. Produce a single fused fuzz driver that:
+   - Combines the best fuzzing strategies from all variants
+   - Adds new input construction paths targeting uncovered reachable lines
+   - Maintains the LibFuzzer harness signature: extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+   - Includes proper headers: <cstdint>, <cstddef>, and the target header
+   - Handles edge cases (null, empty input, boundary sizes)
+   - Uses data partitioning to test multiple API paths in one driver
+
+4. Output only the complete C++ source code, no explanations.

@@ -381,5 +381,127 @@ exit:
         self.assertIn("[Coverage]", result["messages"][0])
 
 
+class TestRefinementAgent(unittest.TestCase):
+    def test_build_variant_analysis(self) -> None:
+        from agents.refinement import _build_variant_analysis
+
+        variants = [
+            {
+                "id": "v1",
+                "config": {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
+                "source_code": "int main() {}",
+                "compile_status": "ok",
+                "compile_errors": "",
+                "patch_attempts": 0,
+                "coverage_pct": 55.0,
+                "branch_coverage_pct": 40.0,
+                "uncovered_lines": [],
+                "unique_coverage": [10, 20],
+            },
+        ]
+        analysis = _build_variant_analysis(variants)
+        self.assertIn("v1", analysis)
+        self.assertIn("55.0%", analysis)
+
+    def test_build_uncovered_reachable(self) -> None:
+        from agents.refinement import _build_uncovered_reachable
+
+        variants = [
+            {
+                "id": "v1",
+                "config": {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
+                "source_code": "",
+                "compile_status": "ok",
+                "compile_errors": "",
+                "patch_attempts": 0,
+                "coverage_pct": 50.0,
+                "branch_coverage_pct": 30.0,
+                "uncovered_lines": [
+                    {"file": "test.c", "line_no": 15, "reachable": True},
+                    {"file": "test.c", "line_no": 25, "reachable": False},
+                ],
+                "unique_coverage": [],
+            },
+        ]
+        result = _build_uncovered_reachable(variants)
+        self.assertIn("test.c:15", result)
+        self.assertNotIn("test.c:25", result)
+
+    def test_render_refinement_prompt(self) -> None:
+        from agents.refinement import _render_refinement_prompt
+
+        config = {
+            "function_name": "cJSON_Parse",
+            "signature": "cJSON *cJSON_Parse(const char *value)",
+            "header": "cJSON.h",
+            "language": "C",
+        }
+        variants = [
+            {
+                "id": "v1",
+                "config": {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
+                "source_code": "int main() {}",
+                "compile_status": "ok",
+                "compile_errors": "",
+                "patch_attempts": 0,
+                "coverage_pct": 50.0,
+                "branch_coverage_pct": 30.0,
+                "uncovered_lines": [],
+                "unique_coverage": [],
+            },
+        ]
+        prompt = _render_refinement_prompt(config, variants)
+        self.assertIn("cJSON_Parse", prompt)
+        self.assertNotIn("{{", prompt)
+
+    @patch("agents.refinement.create_llm")
+    def test_refinement_node_produces_fused(self, mock_create_llm: MagicMock) -> None:
+        from agents.refinement import refinement_node
+
+        mock_llm = MagicMock()
+        mock_response = MagicMock()
+        mock_response.content = "```cpp\n#include <cstdint>\nint LLVMFuzzerTestOneInput() {}\n```"
+        mock_llm.invoke.return_value = mock_response
+        mock_create_llm.return_value = mock_llm
+
+        state = {
+            "target_config": {
+                "function_name": "test_func",
+                "signature": "void test_func()",
+                "header": "test.h",
+                "language": "C",
+            },
+            "variants": [
+                {
+                    "id": "v1",
+                    "config": {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
+                    "source_code": "int main() {}",
+                    "compile_status": "ok",
+                    "compile_errors": "",
+                    "patch_attempts": 0,
+                    "coverage_pct": 50.0,
+                    "branch_coverage_pct": 30.0,
+                    "uncovered_lines": [],
+                    "unique_coverage": [],
+                },
+            ],
+            "messages": [],
+            "iteration": 1,
+        }
+
+        result = refinement_node(state)
+        self.assertEqual(len(result["variants"]), 2)
+        self.assertEqual(result["variants"][-1]["id"], "fused_iter1")
+        self.assertEqual(result["variants"][-1]["compile_status"], "pending")
+        self.assertIn("[Refinement]", result["messages"][0])
+
+
+class TestSupervisor(unittest.TestCase):
+    def test_supervisor_imports(self) -> None:
+        from agents.supervisor import run_pipeline, main
+        self.assertTrue(callable(run_pipeline))
+        self.assertTrue(callable(main))
+
+
 if __name__ == "__main__":
     unittest.main()

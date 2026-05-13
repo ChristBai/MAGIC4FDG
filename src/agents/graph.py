@@ -7,6 +7,7 @@ from langgraph.graph import END, StateGraph
 from .coverage import coverage_node
 from .generation import generation_node
 from .patching import patching_node
+from .refinement import refinement_node
 from .research import research_node
 from .state import PipelineState
 
@@ -20,7 +21,7 @@ def _route_after_patching(state: PipelineState) -> str:
 
 
 def _route_after_coverage(state: PipelineState) -> str:
-    """Route after coverage: end if target met or max iterations reached."""
+    """Route after coverage: end if target met or max iterations reached, else refine."""
     best_coverage = state.get("best_coverage", 0.0)
     target_coverage = state.get("target_coverage", 70.0)
     iteration = state.get("iteration", 0)
@@ -30,13 +31,13 @@ def _route_after_coverage(state: PipelineState) -> str:
         return END
     if iteration >= max_iterations:
         return END
-    return END  # will route to "refinement" once implemented
+    return "refinement"
 
 
 def build_graph() -> StateGraph:
     """Build the multi-agent pipeline graph.
 
-    Research → Generation → Patching → Coverage → END
+    Research → Generation → Patching → Coverage ⇄ Refinement → Patching → Coverage
     """
     graph = StateGraph(PipelineState)
 
@@ -44,12 +45,14 @@ def build_graph() -> StateGraph:
     graph.add_node("generation", generation_node)
     graph.add_node("patching", patching_node)
     graph.add_node("coverage", coverage_node)
+    graph.add_node("refinement", refinement_node)
 
     graph.set_entry_point("research")
     graph.add_edge("research", "generation")
     graph.add_edge("generation", "patching")
     graph.add_conditional_edges("patching", _route_after_patching)
     graph.add_conditional_edges("coverage", _route_after_coverage)
+    graph.add_edge("refinement", "patching")
 
     return graph
 
