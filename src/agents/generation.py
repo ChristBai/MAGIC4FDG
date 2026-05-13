@@ -120,18 +120,32 @@ def generation_node(state: PipelineState) -> dict:
 
 
 def _default_variant_matrix() -> list[VariantConfig]:
-    """Default variant matrix: 2 models × 3 strategies × 1 temperature (6 variants)."""
-    import os
+    """Build variant matrix from llm_config.json.
 
-    primary_model = os.environ.get("LLM_MODEL", "gpt-4o")
-    secondary_model = os.environ.get("SECONDARY_MODEL", "deepseek-chat")
+    Generates: len(models) × len(strategies) × len(temperatures) variants.
+    Falls back to environment variables if config file is missing.
+    """
+    from .llm_factory import _load_config
+
+    config = _load_config()
+    models_cfg = config.get("models", [])
+    matrix_cfg = config.get("variant_matrix", {})
+
+    strategies = matrix_cfg.get("strategies", ["basic", "research", "example"])
+    temperatures = matrix_cfg.get("temperatures", [0.7])
+
+    if not models_cfg:
+        import os
+        model = os.environ.get("LLM_MODEL", "gpt-4o")
+        models_cfg = [{"name": model}]
 
     matrix: list[VariantConfig] = []
-    for model in [primary_model, secondary_model]:
-        for strategy in ["basic", "research", "example"]:
-            matrix.append({
-                "model": model,
-                "prompt_strategy": strategy,
-                "temperature": 0.7,
-            })
+    for model_info in models_cfg:
+        for strategy in strategies:
+            for temp in temperatures:
+                matrix.append({
+                    "model": model_info["name"],
+                    "prompt_strategy": strategy,
+                    "temperature": temp,
+                })
     return matrix

@@ -1,16 +1,41 @@
-"""LLM factory for creating ChatOpenAI instances with different configurations."""
+"""LLM factory for creating ChatOpenAI instances from config file."""
 
 from __future__ import annotations
 
+import json
 import os
+from pathlib import Path
 
 from langchain_openai import ChatOpenAI
 
-
-DEFAULT_MODEL = "gpt-4o"
-DEFAULT_BASE_URL = "https://api.openai.com/v1"
 DEFAULT_MAX_TOKENS = 2048
 DEFAULT_RETRY_ATTEMPTS = 3
+DEFAULT_TIMEOUT = 120
+
+_config_cache: dict | None = None
+
+
+def _load_config() -> dict:
+    """Load LLM config from llm_config.json."""
+    global _config_cache
+    if _config_cache is not None:
+        return _config_cache
+
+    config_path = Path(__file__).resolve().parents[2] / "llm_config.json"
+    if config_path.exists():
+        _config_cache = json.loads(config_path.read_text(encoding="utf-8"))
+    else:
+        _config_cache = {"models": [], "variant_matrix": {}, "defaults": {}}
+    return _config_cache
+
+
+def _find_model_config(model_name: str) -> dict | None:
+    """Find model configuration by name from config file."""
+    config = _load_config()
+    for m in config.get("models", []):
+        if m["name"] == model_name:
+            return m
+    return None
 
 
 def create_llm(
@@ -21,14 +46,31 @@ def create_llm(
     base_url: str | None = None,
     api_key: str | None = None,
 ) -> ChatOpenAI:
-    """Create a ChatOpenAI instance from environment variables and overrides.
+    """Create a ChatOpenAI instance.
 
-    Supports any OpenAI-compatible API (DeepSeek, Qwen, Ollama, etc.)
-    via the base_url parameter or LLM_API_URL environment variable.
+    Resolution order for each parameter:
+    1. Explicit argument
+    2. Config file (llm_config.json) matched by model name
+    3. Environment variables (LLM_API_URL, LLM_MODEL, LLM_API_KEY)
+    4. Defaults
     """
-    resolved_base_url = base_url or os.environ.get("LLM_API_URL", DEFAULT_BASE_URL)
-    resolved_model = model or os.environ.get("LLM_MODEL", DEFAULT_MODEL)
-    resolved_api_key = api_key or os.environ.get("LLM_API_KEY", "")
+    config = _load_config()
+    defaults = config.get("defaults", {})
+
+    resolved_model = model or os.environ.get("LLM_MODEL", "gpt-4o")
+    model_config = _find_model_config(resolved_model)
+
+    if model_config:
+        resolved_base_url = base_url or model_config.get("api_url") or os.environ.get("LLM_API_URL", "")
+        key_env = model_config.get("api_key_env", "LLM_API_KEY")
+        resolved_api_key = api_key or os.environ.get(key_env, os.environ.get("LLM_API_KEY", ""))
+        max_tokens = model_config.get("max_tokens", max_tokens)
+    else:
+        resolved_base_url = base_url or os.environ.get("LLM_API_URL", "https://api.openai.com/v1")
+        resolved_api_key = api_key or os.environ.get("LLM_API_KEY", "")
+
+    timeout = defaults.get("timeout", DEFAULT_TIMEOUT)
+    retries = defaults.get("max_retries", DEFAULT_RETRY_ATTEMPTS)
 
     llm = ChatOpenAI(
         base_url=resolved_base_url,
@@ -36,28 +78,15 @@ def create_llm(
         api_key=resolved_api_key,
         temperature=temperature,
         max_tokens=max_tokens,
-        timeout=120,
+        timeout=timeout,
     )
-    return llm.with_retry(stop_after_attempt=DEFAULT_RETRY_ATTEMPTS)
+    return llm.with_retry(stop_after_attempt=retries)
 
 
 def create_variant_llm(model: str, temperature: float) -> ChatOpenAI:
     """Create an LLM instance for a specific variant configuration.
 
-    Uses the model name to determine the appropriate base_url:
-    - Models starting with 'deepseek' use DEEPSEEK_API_URL or default DeepSeek endpoint
-    - Others use LLM_API_URL or default OpenAI endpoint
+    Looks up model in llm_config.json to resolve API endpoint and key.
+    Falls back to environment variables if model not found in config.
     """
-    if model.startswith("deepseek"):
-        base_url = os.environ.get("DEEPSEEK_API_URL", "https://api.deepseek.com/v1")
-        api_key = os.environ.get("DEEPSEEK_API_KEY", os.environ.get("LLM_API_KEY", ""))
-    else:
-        base_url = os.environ.get("LLM_API_URL", DEFAULT_BASE_URL)
-        api_key = os.environ.get("LLM_API_KEY", "")
-
-    return create_llm(
-        model=model,
-        temperature=temperature,
-        base_url=base_url,
-        api_key=api_key,
-    )
+    return create_llm(model=model, temperature=temperature)
