@@ -25,8 +25,8 @@ TEMPLATE_PATH = ROOT / "prompts" / "libfuzzer_driver_prompt.txt"
 PROMPT_OUTPUT_PATH = ROOT / "generated" / "prompt.txt"
 DRIVER_OUTPUT_PATH = ROOT / "generated" / "fuzz_driver.cpp"
 RAW_RESPONSE_PATH = ROOT / "generated" / "llm_response.json"
-OPENAI_RESPONSES_URL = os.environ.get(
-    "OPENAI_BASE_URL", "https://api.openai.com/v1/responses"
+LLM_API_URL = os.environ.get(
+    "LLM_API_URL", "https://api.openai.com/v1/chat/completions"
 )
 
 
@@ -54,24 +54,14 @@ def render_prompt(target: dict[str, Any]) -> str:
 
 
 def extract_response_text(response: dict[str, Any]) -> str:
-    output_text = response.get("output_text")
-    if isinstance(output_text, str) and output_text.strip():
-        return output_text
-
-    parts: list[str] = []
-    for item in response.get("output", []):
-        if not isinstance(item, dict):
-            continue
-        for content in item.get("content", []):
-            if not isinstance(content, dict):
-                continue
-            if content.get("type") == "output_text" and isinstance(content.get("text"), str):
-                parts.append(content["text"])
-
-    text = "\n".join(parts).strip()
-    if not text:
+    choices = response.get("choices")
+    if not choices or not isinstance(choices, list):
+        raise RuntimeError("LLM response did not contain choices.")
+    message = choices[0].get("message", {})
+    text = message.get("content", "")
+    if not isinstance(text, str) or not text.strip():
         raise RuntimeError("LLM response did not contain output text.")
-    return text
+    return text.strip()
 
 
 def strip_code_fences(text: str) -> str:
@@ -82,7 +72,7 @@ def strip_code_fences(text: str) -> str:
     return stripped + "\n"
 
 
-def call_openai_responses(
+def call_llm(
     *,
     api_key: str,
     model: str,
@@ -92,11 +82,11 @@ def call_openai_responses(
 ) -> dict[str, Any]:
     payload = {
         "model": model,
-        "input": prompt,
-        "max_output_tokens": max_output_tokens,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_output_tokens,
     }
     request = urllib.request.Request(
-        OPENAI_RESPONSES_URL,
+        LLM_API_URL,
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -110,14 +100,14 @@ def call_openai_responses(
             raw = response.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"OpenAI API request failed with HTTP {exc.code}: {body}") from exc
+        raise RuntimeError(f"LLM API request failed with HTTP {exc.code}: {body}") from exc
     except urllib.error.URLError as exc:
-        raise RuntimeError(f"OpenAI API request failed: {exc}") from exc
+        raise RuntimeError(f"LLM API request failed: {exc}") from exc
 
     try:
         return json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise RuntimeError(f"OpenAI API returned invalid JSON: {exc}") from exc
+        raise RuntimeError(f"LLM API returned invalid JSON: {exc}") from exc
 
 
 def main() -> int:
@@ -143,13 +133,13 @@ def main() -> int:
     )
     parser.add_argument(
         "--model",
-        default=os.environ.get("OPENAI_MODEL", "gpt-5.4"),
-        help="OpenAI model name. Defaults to OPENAI_MODEL or gpt-5.4.",
+        default=os.environ.get("LLM_MODEL", "gpt-4o"),
+        help="LLM model name. Defaults to LLM_MODEL env or gpt-4o.",
     )
     parser.add_argument(
         "--api-key-env",
-        default="OPENAI_API_KEY",
-        help="Environment variable containing the OpenAI API key.",
+        default="LLM_API_KEY",
+        help="Environment variable containing the LLM API key.",
     )
     parser.add_argument(
         "--max-output-tokens",
@@ -187,7 +177,7 @@ def main() -> int:
 
     if mode == "prompt":
         print(f"\nPrompt saved to {PROMPT_OUTPUT_PATH}")
-        print("Dry run only. Use --mode llm to call the OpenAI API.")
+        print("Dry run only. Use --mode llm to call the LLM API.")
         return 0
 
     api_key = os.environ.get(args.api_key_env)
@@ -198,7 +188,7 @@ def main() -> int:
         )
         return 2
 
-    response = call_openai_responses(
+    response = call_llm(
         api_key=api_key,
         model=args.model,
         prompt=prompt,

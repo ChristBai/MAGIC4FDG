@@ -22,7 +22,9 @@ python3 src/generate_driver.py --target-config targets/cjson_parse.json --mode p
 
 ### Generate a fuzz driver (call LLM)
 ```bash
-export OPENAI_API_KEY="sk-..."
+export LLM_API_KEY="sk-..."
+# Optional: export LLM_API_URL="https://api.deepseek.com/v1/chat/completions"
+# Optional: export LLM_MODEL="deepseek-chat"
 python3 src/generate_driver.py --target-config targets/cjson_parse.json --mode llm
 ```
 
@@ -83,7 +85,7 @@ All Python scripts import from this module for config loading and path resolutio
 JSON files in `targets/` describe a fuzz target. Key fields: `target_name`, `function_name`, `signature`, `header`, `source_files`, `include_dirs`, `seed_corpus`, `cleanup_function`, `description`, `language`. The coverage reporter needs only `REQUIRED_FIELDS_COMMON`; the driver generator needs `REQUIRED_FIELDS_DRIVER` (adds language, signature, header, description).
 
 ### LLM integration
-Uses OpenAI Responses API (not Chat Completions). Endpoint is hardcoded in `src/generate_driver.py` as `OPENAI_RESPONSES_URL`. Model defaults to env `OPENAI_MODEL` or `gpt-5.4`.
+Uses OpenAI-compatible Chat Completions API (`/v1/chat/completions`). Endpoint configurable via `LLM_API_URL` env var (defaults to OpenAI). Model defaults to env `LLM_MODEL` or `gpt-4o`. API key from `LLM_API_KEY` env var. Compatible with DeepSeek, Qwen, local Ollama, etc.
 
 ### Output directories
 - `generated/fuzz_driver.cpp` — latest generated driver

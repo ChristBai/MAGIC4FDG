@@ -1,8 +1,8 @@
 # fuzz-driver-gen-mvp
 
-一个最小可行原型，用于学习“基于 LLM 的 C/C++ LibFuzzer fuzz driver 生成”。
+一个最小可行原型，用于学习”基于 LLM 的 C/C++ LibFuzzer fuzz driver 生成”。
 
-当前版本可以先把固定 prompt 模板渲染出来，也可以调用真实 OpenAI Responses API 生成 `generated/fuzz_driver.cpp`。仓库里仍保留了一个手写、可运行的 LibFuzzer driver，方便没有 API key 时继续学习构建和运行流程。
+当前版本可以先把固定 prompt 模板渲染出来，也可以调用兼容 OpenAI Chat Completions 格式的 LLM API 生成 `generated/fuzz_driver.cpp`。支持 OpenAI、DeepSeek、Qwen、本地 Ollama 等任意兼容服务。仓库里仍保留了一个手写、可运行的 LibFuzzer driver，方便没有 API key 时继续学习构建和运行流程。
 
 本项目只用于本地、防御性的软件测试教学示例：为开源 C/C++ 库 API 生成 LibFuzzer driver，不包含攻击真实系统、漏洞利用、未授权目标、恶意软件、凭据窃取或绕过访问控制的逻辑。
 
@@ -133,33 +133,47 @@ python3 src/generate_driver.py \
 
 ## 调用真实 LLM 生成 driver
 
-设置 OpenAI API key 后，使用 `--mode llm` 为 cJSON 生成 driver：
+设置 API key 后，使用 `--mode llm` 为 cJSON 生成 driver：
 
 ```bash
-export OPENAI_API_KEY="sk-..."
+export LLM_API_KEY="sk-..."
 
 python3 src/generate_driver.py \
   --target-config targets/cjson_parse.json \
   --mode llm
 ```
 
+支持通过环境变量切换不同 LLM 服务：
+
+```bash
+# DeepSeek
+export LLM_API_URL="https://api.deepseek.com/v1/chat/completions"
+export LLM_MODEL="deepseek-chat"
+export LLM_API_KEY="sk-..."
+
+# 本地 Ollama
+export LLM_API_URL="http://localhost:11434/v1/chat/completions"
+export LLM_MODEL="qwen2.5-coder:7b"
+export LLM_API_KEY="ollama"
+```
+
 脚本会：
 
 1. 将完整 prompt 写入 `generated/prompt.txt`
-2. 调用 OpenAI Responses API
+2. 调用 LLM Chat Completions API
 3. 将原始 API 响应写入 `generated/llm_response.json`
 4. 将生成的 C++ driver 写入 `generated/fuzz_driver.cpp`
 
-默认模型来自 `OPENAI_MODEL`，如果没有设置则使用 `gpt-5.4`：
+默认模型来自 `LLM_MODEL`，如果没有设置则使用 `gpt-4o`：
 
 ```bash
-OPENAI_MODEL="gpt-5.4" python3 src/generate_driver.py --target-config targets/cjson_parse.json --mode llm
+LLM_MODEL="gpt-4o" python3 src/generate_driver.py --target-config targets/cjson_parse.json --mode llm
 ```
 
 也可以显式指定：
 
 ```bash
-python3 src/generate_driver.py --target-config targets/cjson_parse.json --mode llm --model gpt-5.4
+python3 src/generate_driver.py --target-config targets/cjson_parse.json --mode llm --model deepseek-chat
 ```
 
 生成后运行 cJSON 的 LibFuzzer validation：

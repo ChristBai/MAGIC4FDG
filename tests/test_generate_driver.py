@@ -34,27 +34,21 @@ class TestStripCodeFences(unittest.TestCase):
 
 
 class TestExtractResponseText(unittest.TestCase):
-    def test_extracts_output_text_field(self) -> None:
-        response = {"output_text": "hello world"}
+    def test_extracts_from_choices(self) -> None:
+        response = {"choices": [{"message": {"content": "hello world"}}]}
         self.assertEqual(extract_response_text(response), "hello world")
 
-    def test_extracts_from_nested_output(self) -> None:
-        response = {
-            "output_text": "",
-            "output": [
-                {
-                    "content": [
-                        {"type": "output_text", "text": "part1"},
-                        {"type": "output_text", "text": "part2"},
-                    ]
-                }
-            ],
-        }
-        self.assertEqual(extract_response_text(response), "part1\npart2")
+    def test_strips_whitespace(self) -> None:
+        response = {"choices": [{"message": {"content": "  code  \n"}}]}
+        self.assertEqual(extract_response_text(response), "code")
 
-    def test_raises_on_empty_response(self) -> None:
+    def test_raises_on_empty_choices(self) -> None:
         with self.assertRaises(RuntimeError):
-            extract_response_text({"output": []})
+            extract_response_text({"choices": []})
+
+    def test_raises_on_missing_choices(self) -> None:
+        with self.assertRaises(RuntimeError):
+            extract_response_text({})
 
 
 if __name__ == "__main__":
