@@ -503,5 +503,66 @@ class TestSupervisor(unittest.TestCase):
         self.assertTrue(callable(main))
 
 
+class TestReport(unittest.TestCase):
+    def test_generate_report(self) -> None:
+        from agents.report import generate_report
+
+        state = {
+            "target_config": {
+                "target_name": "cjson",
+                "function_name": "cJSON_Parse",
+                "signature": "cJSON *cJSON_Parse(const char *value)",
+            },
+            "iteration": 2,
+            "target_coverage": 70.0,
+            "best_coverage": 65.0,
+            "fuzz_seconds": 15,
+            "variants": [
+                {
+                    "id": "v1",
+                    "config": {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
+                    "source_code": "int main() {}",
+                    "compile_status": "ok",
+                    "compile_errors": "",
+                    "patch_attempts": 1,
+                    "coverage_pct": 65.0,
+                    "branch_coverage_pct": 45.0,
+                    "uncovered_lines": [
+                        {"file": "cJSON.c", "line_no": 100, "reachable": True},
+                        {"file": "cJSON.c", "line_no": 200, "reachable": False},
+                    ],
+                    "unique_coverage": [],
+                },
+                {
+                    "id": "v2",
+                    "config": {"model": "deepseek-chat", "prompt_strategy": "research", "temperature": 0.4},
+                    "source_code": "",
+                    "compile_status": "failed",
+                    "compile_errors": "error",
+                    "patch_attempts": 3,
+                    "coverage_pct": 0.0,
+                    "branch_coverage_pct": 0.0,
+                    "uncovered_lines": [],
+                    "unique_coverage": [],
+                },
+            ],
+            "messages": ["[Research] Done", "[Coverage] v1: 65.0%"],
+        }
+
+        report = generate_report(state)
+        self.assertIn("cjson", report)
+        self.assertIn("cJSON_Parse", report)
+        self.assertIn("65.0%", report)
+        self.assertIn("NOT reached", report)
+        self.assertIn("v1", report)
+        self.assertIn("Execution Log", report)
+
+    def test_variant_table_empty(self) -> None:
+        from agents.report import _variant_table
+
+        result = _variant_table([])
+        self.assertIn("No variants generated.", result)
+
+
 if __name__ == "__main__":
     unittest.main()

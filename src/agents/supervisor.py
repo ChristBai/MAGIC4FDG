@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -12,6 +11,7 @@ from target_config import ROOT, load_target_config
 
 from .graph import compile_graph
 from .generation import _default_variant_matrix
+from .report import save_report
 
 
 def run_pipeline(
@@ -67,25 +67,7 @@ def _save_results(state: dict, config: dict) -> None:
             vpath = variants_dir / f"{v['id']}.cpp"
             vpath.write_text(v["source_code"], encoding="utf-8")
 
-    report = {
-        "target_name": target_name,
-        "iterations": state.get("iteration", 0),
-        "best_coverage": state.get("best_coverage", 0.0),
-        "target_coverage": state.get("target_coverage", 70.0),
-        "variants": [
-            {
-                "id": v["id"],
-                "compile_status": v["compile_status"],
-                "coverage_pct": v.get("coverage_pct", 0.0),
-                "branch_coverage_pct": v.get("branch_coverage_pct", 0.0),
-                "patch_attempts": v.get("patch_attempts", 0),
-            }
-            for v in state.get("variants", [])
-        ],
-        "messages": state.get("messages", []),
-    }
-    report_path = out_dir / "report.json"
-    report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    report_path = save_report(state)
 
     print(f"\n{'='*60}")
     print(f"Pipeline complete: {target_name}")
