@@ -24,3 +24,5 @@ RUN if [ -n "${APT_MIRROR}" ]; then \
 WORKDIR /workspace
 
 COPY . /workspace
+
+RUN pip install --no-cache-dir -e . 2>/dev/null || true

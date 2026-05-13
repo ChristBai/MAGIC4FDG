@@ -1,44 +1,76 @@
-# fuzz-driver-gen-mvp
+# fuzz-driver-gen
 
-一个最小可行原型，用于学习”基于 LLM 的 C/C++ LibFuzzer fuzz driver 生成”。
+Coverage-guided multi-agent fuzz driver generation for C/C++ libraries.
 
-当前版本可以先把固定 prompt 模板渲染出来，也可以调用兼容 OpenAI Chat Completions 格式的 LLM API 生成 `generated/fuzz_driver.cpp`。支持 OpenAI、DeepSeek、Qwen、本地 Ollama 等任意兼容服务。仓库里仍保留了一个手写、可运行的 LibFuzzer driver，方便没有 API key 时继续学习构建和运行流程。
+本工具使用 LangGraph 编排 5 个专业化 LLM Agent，自动为 C/C++ 库生成高覆盖率的 LibFuzzer fuzz driver。核心创新：
 
-本项目只用于本地、防御性的软件测试教学示例：为开源 C/C++ 库 API 生成 LibFuzzer driver，不包含攻击真实系统、漏洞利用、未授权目标、恶意软件、凭据窃取或绕过访问控制的逻辑。
+1. **细粒度覆盖率反馈** — 基于 llvm-cov 的行级/分支级覆盖率数据引导 LLM 改进 driver
+2. **多变体生成 + 覆盖率融合** — 2 模型 × 3 提示词策略 × 2 温度的变体矩阵，分析各变体独特覆盖并融合
+3. **LLVM CFG 可达性分析** — 用 LLVM opt 构建控制流图，过滤不可达分支，避免无效迭代
 
-## 项目结构
+## 架构
 
 ```text
-examples/tiny_lib/
-  tiny.h
-  tiny.cpp
-  seed_corpus/
-examples/cjson_lib/
-  cJSON.h
-  cJSON.c
-  json.dict
-  seed_corpus/seed.json
-targets/
-  tiny_parse_int.json
-  cjson_parse.json
-prompts/libfuzzer_driver_prompt.txt
-src/analyze_target.py
-src/generate_driver.py
-generated/fuzz_driver.cpp
-scripts/docker_build.sh
-scripts/docker_run_fuzz.sh
-scripts/docker_run_coverage.sh
-scripts/build_and_run.sh
-scripts/clean_runs.sh
+┌─────────────────────────────────────────────────────────────┐
+│                    LangGraph Supervisor                       │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  Research → Generation(N变体) → Patching → Coverage          │
+│                                                ↓             │
+│                                         达标? → Done         │
+│                                                ↓             │
+│                                         Refinement(融合)     │
+│                                                ↓             │
+│                                         → Patching → ...     │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Automatic target analysis
+| Agent | 职责 |
+|-------|------|
+| Research | 分析目标库源码，识别代码路径和 API 语义 |
+| Generation | 按变体矩阵生成多个 fuzz driver |
+| Patching | 编译修复，每变体最多 3 轮 |
+| Coverage | Docker 内 fuzz + llvm-cov + LLVM CFG 可达性分析 |
+| Refinement | 分析各变体独特覆盖，LLM 融合最优 driver |
 
-You can generate target config JSON files from a C/C++ header without hand-writing each target. The analyzer is intentionally conservative for the MVP: it strips comments/preprocessor lines, parses simple C-style public function declarations, ranks likely fuzz entry points, and writes one config per candidate plus an index sorted by score.
+## 快速开始
 
-Generate cJSON target configs:
+### 安装
 
 ```bash
+pip install -e .
+```
+
+### 环境变量
+
+```bash
+export LLM_API_KEY="sk-..."
+# 可选：切换模型和 API 端点
+export LLM_MODEL="gpt-4o"
+export LLM_API_URL="https://api.openai.com/v1"
+# 可选：DeepSeek 作为第二模型
+export DEEPSEEK_API_KEY="sk-..."
+export DEEPSEEK_API_URL="https://api.deepseek.com/v1"
+```
+
+### 运行完整流程
+
+```bash
+# 构建 Docker 镜像（编译和 fuzz 在容器内执行）
+./scripts/docker_build.sh
+
+# 运行多 Agent 流程
+python3 -m src.agents.supervisor \
+  --target-config targets/cjson_parse.json \
+  --max-iterations 3 \
+  --target-coverage 70 \
+  --fuzz-seconds 15
+```
+
+### 单独使用各组件
+
+```bash
+# 分析头文件生成目标配置
 python3 src/analyze_target.py \
   --library-name cjson \
   --header examples/cjson_lib/cJSON.h \
@@ -46,252 +78,63 @@ python3 src/analyze_target.py \
   --include-dir examples/cjson_lib \
   --seed-corpus examples/cjson_lib/seed_corpus \
   --out-dir targets/generated
-```
 
-The generated configs are written to `targets/generated/`, with `targets/generated/cjson_index.json` listing all candidates. To use the top generated target, pick the first entry from the index, then pass that config to the existing pipeline:
-
-```bash
-python3 src/generate_driver.py \
-  --target-config targets/generated/cjson_cJSON_ParseWithLength.json \
-  --mode llm
-
-./scripts/docker_build.sh
-TARGET_CONFIG=targets/generated/cjson_cJSON_ParseWithLength.json ./scripts/docker_run_fuzz.sh
-```
-
-The manually written `targets/cjson_parse.json` remains as a small baseline example.
-
-## Coverage report
-
-After a driver has been generated and can compile, collect LLVM source-based coverage for a short fuzz run:
-
-```bash
-./scripts/docker_build.sh
-TARGET_CONFIG=targets/generated/cjson_cJSON_ParseWithLength.json \
-FUZZ_SECONDS=10 \
-FUZZ_USE_CMP=1 \
-FUZZ_DICT=examples/cjson_lib/json.dict \
-./scripts/docker_run_coverage.sh
-```
-
-The coverage run writes an isolated report directory:
-
-```text
-generated/coverage/<target-name>-<timestamp>/
-  coverage_report.md
-  coverage_report.json
-  coverage_export.json
-  coverage.log
-  html/
-  corpus/
-  artifacts/
-```
-
-Use `coverage_report.md` for a quick human-readable summary, `coverage_report.json` for tool integration, and `html/index.html` for line-by-line inspection. The report records build status, fuzz exit code, total line/function/region/branch coverage, and per-file coverage.
-
-The JSON and Markdown reports also include fuzzing signals that help evaluate target quality:
-
-```text
-executions
-final corpus files
-final corpus bytes
-artifact files
-recommended dictionary entries
-```
-
-Compare multiple coverage runs:
-
-```bash
-python3 src/compare_coverage_reports.py generated/coverage/*/coverage_report.json
-```
-
-## 生成 prompt
-
-为第一个真实外部 C 库目标 cJSON 生成 prompt：
-
-```bash
-python3 src/generate_driver.py \
-  --target-config targets/cjson_parse.json \
-  --mode prompt
-```
-
-生成结果会保存到：
-
-```text
-generated/prompt.txt
-```
-
-默认是 dry-run，不会调用真实 LLM。
-
-教学用 `tiny_lib` 目标仍然保留：
-
-```bash
-python3 src/generate_driver.py \
-  --target-config targets/tiny_parse_int.json \
-  --mode prompt
-```
-
-## 调用真实 LLM 生成 driver
-
-设置 API key 后，使用 `--mode llm` 为 cJSON 生成 driver：
-
-```bash
-export LLM_API_KEY="sk-..."
-
+# 单次 driver 生成（不走多 Agent 流程）
 python3 src/generate_driver.py \
   --target-config targets/cjson_parse.json \
   --mode llm
+
+# 覆盖率报告
+TARGET_CONFIG=targets/cjson_parse.json FUZZ_SECONDS=10 ./scripts/docker_run_coverage.sh
 ```
 
-支持通过环境变量切换不同 LLM 服务：
+## 项目结构
 
-```bash
-# DeepSeek
-export LLM_API_URL="https://api.deepseek.com/v1/chat/completions"
-export LLM_MODEL="deepseek-chat"
-export LLM_API_KEY="sk-..."
-
-# 本地 Ollama
-export LLM_API_URL="http://localhost:11434/v1/chat/completions"
-export LLM_MODEL="qwen2.5-coder:7b"
-export LLM_API_KEY="ollama"
+```text
+src/
+  agents/                    ← 多 Agent 流程（LangGraph）
+    state.py                   状态定义
+    graph.py                   图构建和路由
+    supervisor.py              CLI 入口
+    research.py                Research Agent
+    generation.py              Generation Agent
+    patching.py                Patching Agent
+    coverage.py                Coverage Agent
+    refinement.py              Refinement Agent
+    llm_factory.py             LLM 实例工厂
+    docker_runner.py           Docker 执行封装
+  analyze_target.py          ← 头文件分析（规则式）
+  generate_driver.py         ← 单次 driver 生成
+  generate_coverage_report.py← 覆盖率收集
+  target_config.py           ← 共享配置模块
+prompts/                     ← Prompt 模板
+examples/                    ← 目标库源码
+targets/                     ← 目标配置 JSON
+scripts/                     ← Docker/构建脚本
 ```
 
-脚本会：
+## 多变体策略
 
-1. 将完整 prompt 写入 `generated/prompt.txt`
-2. 调用 LLM Chat Completions API
-3. 将原始 API 响应写入 `generated/llm_response.json`
-4. 将生成的 C++ driver 写入 `generated/fuzz_driver.cpp`
+| 维度 | 选项 | 理由 |
+|------|------|------|
+| 模型 | GPT-4o, DeepSeek-V3 | 不同模型对 C/C++ 代码理解互补 |
+| 提示词策略 | basic, research, example | 不同信息量引导不同生成方向 |
+| 温度 | 0.4, 0.9 | 低温精确、高温探索 |
 
-默认模型来自 `LLM_MODEL`，如果没有设置则使用 `gpt-4o`：
+## Docker
 
-```bash
-LLM_MODEL="gpt-4o" python3 src/generate_driver.py --target-config targets/cjson_parse.json --mode llm
-```
-
-也可以显式指定：
-
-```bash
-python3 src/generate_driver.py --target-config targets/cjson_parse.json --mode llm --model deepseek-chat
-```
-
-生成后运行 cJSON 的 LibFuzzer validation：
+Ubuntu 22.04 + clang/llvm/lld。编排器在宿主机运行，编译/fuzz/覆盖率收集在容器内。
 
 ```bash
 ./scripts/docker_build.sh
-TARGET_CONFIG=targets/cjson_parse.json ./scripts/docker_run_fuzz.sh
 ```
 
-## 推荐方式：Docker 运行真正 LibFuzzer
-
-推荐使用 Docker，这样不依赖本机 `clang++` 是否自带 LibFuzzer runtime。
+## 测试
 
 ```bash
-chmod +x scripts/*.sh
-./scripts/docker_build.sh
-TARGET_CONFIG=targets/cjson_parse.json ./scripts/docker_run_fuzz.sh
+python3 -m pytest tests/ -v
 ```
 
-Docker 镜像基于 Ubuntu，安装 `clang`、`llvm`、`lld`、`cmake`、`ninja-build`、`build-essential`、`python3`、`python3-pip` 和 `git`。运行时会把当前项目目录挂载到容器的 `/workspace`，然后执行 `scripts/build_and_run.sh`。
+## 许可
 
-## 运行结果目录
-
-目标配置中的 `seed_corpus` 是只读初始语料目录。正式 fuzz 脚本不会把它直接传给 LibFuzzer，因为 LibFuzzer 会把新发现的输入写回第一个 corpus 目录。
-
-每次运行都会创建独立目录：
-
-```text
-generated/runs/<timestamp>/
-  corpus/
-  artifacts/
-  fuzz_driver
-  fuzz.log
-```
-
-脚本会把目标配置中的 seed corpus 复制到本次 `corpus/`，然后只让 LibFuzzer 写入这个副本。`crash-*`、`timeout-*` 等 artifact 会写入本次 `artifacts/`。完整运行日志会保存到本次 `fuzz.log`。
-
-## 本地编译并 fuzz
-
-需要本机安装支持真正 LibFuzzer runtime 的 `clang++`。
-
-```bash
-chmod +x scripts/build_and_run.sh
-./scripts/build_and_run.sh
-```
-
-脚本会：
-
-1. 编译目标配置中的 source files 和 `generated/fuzz_driver.cpp`
-2. 使用 `-fsanitize=fuzzer,address`
-3. 复制目标配置中的 seed corpus 到本次 run 的 `corpus/`
-4. 使用 `-max_total_time=10 -artifact_prefix=<run>/artifacts/` 运行 10 秒
-5. 每次运行前后统计 seed corpus 文件列表 hash，确认初始语料目录没有变化
-
-本地脚本不会自动 fallback。如果编译失败，请优先使用 Docker 方式。
-
-要本地验证 cJSON，请先生成 cJSON driver，然后运行：
-
-```bash
-TARGET_CONFIG=targets/cjson_parse.json ./scripts/build_and_run.sh
-```
-
-## 稳定性验证
-
-默认 `FUZZ_USE_CMP=0`，脚本会传入 `-use_cmp=0`，用于稳定跑满 10 秒：
-
-```bash
-./scripts/build_and_run.sh
-```
-
-Docker 推荐方式同样使用这个默认值：
-
-```bash
-./scripts/docker_run_fuzz.sh
-```
-
-## crash flow 验证
-
-如果要验证 LibFuzzer 发现 `CRASH` 后的 artifact 和日志流转，设置 `FUZZ_USE_CMP=1`。此时脚本不会传 `-use_cmp=0`：
-
-```bash
-FUZZ_USE_CMP=1 ./scripts/build_and_run.sh
-```
-
-Docker 方式：
-
-```bash
-FUZZ_USE_CMP=1 ./scripts/docker_run_fuzz.sh
-```
-
-如果发现 crash，脚本会捕获 fuzz 进程退出码，并打印：
-
-```text
-fuzz exit code
-run directory
-artifact directory
-log file
-```
-
-## 清理运行结果
-
-清理历史 run 目录：
-
-```bash
-./scripts/clean_runs.sh
-```
-
-这个脚本只清理 `generated/runs/`，不会删除 `generated/fuzz_driver.cpp`。
-
-## fallback 冒烟测试
-
-如果当前机器没有 LibFuzzer runtime，可以运行单独的 fallback 脚本：
-
-```bash
-chmod +x scripts/build_and_run_fallback.sh
-./scripts/build_and_run_fallback.sh
-```
-
-它使用 `scripts/local_fuzzer_main.cpp` 和 `-fsanitize=fuzzer-no-link,address` 编译同一个 `LLVMFuzzerTestOneInput` 入口，只用于验证 driver 可以被调用，不作为正式 fuzzing 实验方式。
-
-`parse_int` 中故意包含崩溃条件：输入等于 `CRASH` 时调用 `abort()`。默认脚本关闭 CMP 辅助以便稳定跑满 10 秒；如果想观察 LibFuzzer 发现这个 crash，请使用 `FUZZ_USE_CMP=1`。
+本项目仅用于防御性软件测试研究。

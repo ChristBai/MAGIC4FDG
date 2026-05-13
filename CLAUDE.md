@@ -4,42 +4,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Project Does
 
-LLM-powered LibFuzzer fuzz driver generator for C/C++ libraries. The pipeline: analyze a C header to identify fuzz candidates → generate a target config JSON → render a prompt → call an LLM to produce a `LLVMFuzzerTestOneInput` driver → compile and fuzz with LibFuzzer → collect LLVM source-based coverage.
+Coverage-guided multi-agent fuzz driver generation for C/C++ libraries. Uses LangGraph to orchestrate 5 specialized LLM agents that iteratively generate, compile-fix, and improve LibFuzzer fuzz drivers based on fine-grained coverage feedback.
+
+Core pipeline: Research Agent analyzes target → Generation Agent produces N driver variants (2 models × 3 strategies × 2 temperatures) → Patching Agent fixes compilation errors → Coverage Agent runs fuzz + llvm-cov + LLVM CFG reachability analysis → Refinement Agent fuses best coverage into improved driver → iterate.
 
 ## Commands
+
+### Install dependencies
+```bash
+pip install -e .
+```
 
 ### Run tests
 ```bash
 python3 -m pytest tests/ -v
-# Single test:
-python3 -m pytest tests/test_analyze_target.py -v
 ```
 
-### Generate a fuzz driver (dry-run prompt only)
+### Run multi-agent pipeline
 ```bash
-python3 src/generate_driver.py --target-config targets/cjson_parse.json --mode prompt
+python3 -m src.agents.supervisor \
+  --target-config targets/cjson_parse.json \
+  --max-iterations 3 \
+  --target-coverage 70 \
+  --fuzz-seconds 15
 ```
 
-### Generate a fuzz driver (call LLM)
+### Single-shot driver generation (legacy)
 ```bash
-export LLM_API_KEY="sk-..."
-# Optional: export LLM_API_URL="https://api.deepseek.com/v1/chat/completions"
-# Optional: export LLM_MODEL="deepseek-chat"
 python3 src/generate_driver.py --target-config targets/cjson_parse.json --mode llm
 ```
 
-### Analyze a header to auto-generate target configs
-```bash
-python3 src/analyze_target.py \
-  --library-name cjson \
-  --header examples/cjson_lib/cJSON.h \
-  --source examples/cjson_lib/cJSON.c \
-  --include-dir examples/cjson_lib \
-  --seed-corpus examples/cjson_lib/seed_corpus \
-  --out-dir targets/generated
-```
-
-### Build and fuzz (Docker, recommended)
+### Build and fuzz (Docker)
 ```bash
 ./scripts/docker_build.sh
 TARGET_CONFIG=targets/cjson_parse.json ./scripts/docker_run_fuzz.sh
@@ -50,56 +45,50 @@ TARGET_CONFIG=targets/cjson_parse.json ./scripts/docker_run_fuzz.sh
 TARGET_CONFIG=targets/cjson_parse.json FUZZ_SECONDS=10 ./scripts/docker_run_coverage.sh
 ```
 
-### Build and fuzz (local, requires clang with LibFuzzer)
-```bash
-./scripts/build_and_run.sh
-# Fallback (no LibFuzzer runtime):
-./scripts/build_and_run_fallback.sh
-```
-
-### Compare coverage runs
-```bash
-python3 src/compare_coverage_reports.py generated/coverage/*/coverage_report.json
-```
-
-### Clean up run artifacts
-```bash
-./scripts/clean_runs.sh
-```
-
 ## Architecture
 
-### Pipeline flow
+### Multi-agent pipeline (LangGraph)
 ```
-analyze_target.py → target config JSON → generate_driver.py → fuzz_driver.cpp
-                                                                     ↓
-                                              build_and_run.sh / docker_run_fuzz.sh
-                                                                     ↓
-                                              generate_coverage_report.py → coverage report
+Research → Generation(N variants) → Patching(≤3 retries each) → Coverage
+                                                                    ↓
+                                                          target met? → Done
+                                                                    ↓
+                                                          Refinement → Patching → Coverage → ...
 ```
 
-### Shared module: `src/target_config.py`
-All Python scripts import from this module for config loading and path resolution. `ROOT` is the project root. Paths in target configs are relative to ROOT and resolved via `resolve_project_path()`. Shell scripts use `scripts/parse_target_config.py` (outputs shell variable assignments via `eval`).
-
-### Target config format
-JSON files in `targets/` describe a fuzz target. Key fields: `target_name`, `function_name`, `signature`, `header`, `source_files`, `include_dirs`, `seed_corpus`, `cleanup_function`, `description`, `language`. The coverage reporter needs only `REQUIRED_FIELDS_COMMON`; the driver generator needs `REQUIRED_FIELDS_DRIVER` (adds language, signature, header, description).
+### Key modules
+- `src/agents/` — LangGraph multi-agent pipeline
+  - `state.py` — PipelineState TypedDict (shared state across all nodes)
+  - `graph.py` — StateGraph definition with conditional routing
+  - `llm_factory.py` — ChatOpenAI factory (supports multiple models/endpoints)
+  - `docker_runner.py` — Docker execution wrapper for compile/fuzz/coverage
+- `src/target_config.py` — Shared config loading (ROOT, load_target_config, resolve_project_path)
+- `src/generate_driver.py` — Legacy single-shot generation (render_prompt, strip_code_fences)
+- `src/generate_coverage_report.py` — Coverage collection (run_command, summarize_export, metric_percent)
 
 ### LLM integration
-Uses OpenAI-compatible Chat Completions API (`/v1/chat/completions`). Endpoint configurable via `LLM_API_URL` env var (defaults to OpenAI). Model defaults to env `LLM_MODEL` or `gpt-4o`. API key from `LLM_API_KEY` env var. Compatible with DeepSeek, Qwen, local Ollama, etc.
+Uses `langchain-openai` ChatOpenAI with OpenAI-compatible APIs. Environment variables:
+- `LLM_API_KEY` — Primary API key
+- `LLM_API_URL` — API base URL (default: OpenAI)
+- `LLM_MODEL` — Model name (default: gpt-4o)
+- `DEEPSEEK_API_KEY` / `DEEPSEEK_API_URL` — Secondary model endpoint
+
+### Target config format
+JSON files in `targets/`. Key fields: `target_name`, `function_name`, `signature`, `header`, `source_files`, `include_dirs`, `seed_corpus`, `cleanup_function`, `description`, `language`.
 
 ### Output directories
-- `generated/fuzz_driver.cpp` — latest generated driver
-- `generated/runs/<target>-<timestamp>/` — per-run corpus, artifacts, logs
-- `generated/coverage/<target>-<timestamp>/` — coverage reports (JSON, Markdown, HTML)
-- Seed corpus directories are read-only; scripts copy them into run dirs before fuzzing
+- `generated/iterations/<target>/` — Multi-agent pipeline output (variants, reports)
+- `generated/fuzz_driver.cpp` — Legacy single-shot output
+- `generated/runs/` — Per-run corpus, artifacts, logs
+- `generated/coverage/` — Coverage reports
 
 ### Docker
-Ubuntu 22.04 with clang/llvm/lld. Project is mounted at `/workspace`. Use `docker_build.sh` once, then `docker_run_fuzz.sh` or `docker_run_coverage.sh`.
+Ubuntu 22.04 with clang/llvm/lld/python3/pip. Orchestrator runs on host; compile/fuzz/coverage in container.
 
 ## Conventions
 
 - Python 3.10+ (type hints with `X | Y` syntax, `from __future__ import annotations`)
-- No external Python dependencies; stdlib only (urllib for HTTP, json, subprocess, etc.)
-- Shell scripts use `set -euo pipefail` and expect `CC`/`CXX` env vars (default: `clang`/`clang++`)
-- `FUZZ_USE_CMP=0` (default) for stable 10-second runs; `FUZZ_USE_CMP=1` to allow crash discovery
+- Dependencies: langgraph, langchain-core, langchain-openai
+- Shell scripts use `set -euo pipefail`
 - Coverage uses `-fprofile-instr-generate -fcoverage-mapping` with ASan
+- `FUZZ_USE_CMP=0` (default) for stable runs; `FUZZ_USE_CMP=1` for crash discovery

@@ -1,8 +1,13 @@
 [project]
-name = "fuzz-driver-gen-mvp"
-version = "0.1.0"
-description = "LLM-powered LibFuzzer fuzz driver generator for C/C++ libraries"
+name = "fuzz-driver-gen"
+version = "0.2.0"
+description = "Coverage-guided multi-agent fuzz driver generation for C/C++ libraries using LLM"
 requires-python = ">=3.10"
+dependencies = [
+    "langgraph>=0.3.0",
+    "langchain-core>=0.3.0",
+    "langchain-openai>=0.3.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
