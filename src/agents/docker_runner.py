@@ -121,7 +121,7 @@ def run_fuzz_with_coverage(
             "--fuzz-seconds", str(fuzz_seconds),
             "--use-cmp", "0",
         ],
-        timeout=fuzz_seconds + 60,
+        timeout=fuzz_seconds + 120,
     )
 
     if result.returncode != 0:

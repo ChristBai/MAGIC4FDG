@@ -36,6 +36,7 @@ def create_llm(
         api_key=resolved_api_key,
         temperature=temperature,
         max_tokens=max_tokens,
+        timeout=120,
     )
     return llm.with_retry(stop_after_attempt=DEFAULT_RETRY_ATTEMPTS)
 

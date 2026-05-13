@@ -21,18 +21,22 @@ def _read_source_files(target_config: dict) -> str:
     source_files = target_config.get("source_files", [])
     header = target_config.get("header", "")
     chunks: list[str] = []
+    max_chars = 8000
 
     if header:
         header_path = resolve_project_path(Path(header))
         if header_path.exists():
-            chunks.append(f"// === {header} ===\n{header_path.read_text(encoding='utf-8')}")
+            h_content = header_path.read_text(encoding="utf-8")
+            if len(h_content) > max_chars:
+                h_content = h_content[:max_chars] + "\n// ... (truncated)"
+            chunks.append(f"// === {header} ===\n{h_content}")
 
     for sf in source_files:
         sf_path = resolve_project_path(Path(sf))
         if sf_path.exists():
             content = sf_path.read_text(encoding="utf-8")
-            if len(content) > 15000:
-                content = content[:15000] + "\n// ... (truncated)"
+            if len(content) > max_chars:
+                content = content[:max_chars] + "\n// ... (truncated)"
             chunks.append(f"// === {sf} ===\n{content}")
 
     return "\n\n".join(chunks) if chunks else "(source files not available)"

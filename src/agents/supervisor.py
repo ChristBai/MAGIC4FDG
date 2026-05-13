@@ -22,7 +22,7 @@ def run_pipeline(
     max_compile_retries: int = 3,
 ) -> dict:
     """Run the full multi-agent pipeline and return the final state."""
-    config = load_target_config(target_config_path)
+    config = load_target_config(Path(target_config_path))
 
     initial_state = {
         "target_config": config,
