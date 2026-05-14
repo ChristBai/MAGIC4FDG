@@ -7,12 +7,17 @@ __pycache__/
 .env
 venv/
 .venv/
-generated/fuzz_driver
-generated/coverage/
-generated/llm_response.json
-generated/runs/
+*.egg-info/
+.pytest_cache/
+
+# Generated outputs
+generated/
 crash-*
 leak-*
 oom-*
 timeout-*
+
+# IDE
+.vscode/
+.idea/
 dev/

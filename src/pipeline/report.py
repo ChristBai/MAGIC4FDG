@@ -1,4 +1,10 @@
-"""Report generator: produces Markdown iteration reports from pipeline state."""
+"""Report generator: produces Markdown and JSON reports from pipeline state.
+
+Generates two output files per run:
+- report.md: Human-readable summary with variant table, coverage stats,
+  uncovered lines analysis, token usage breakdown, and execution log.
+- report.json: Machine-readable metrics for programmatic analysis.
+"""
 
 from __future__ import annotations
 

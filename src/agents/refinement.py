@@ -1,4 +1,14 @@
-"""Refinement Agent: fuses multiple variant coverage into an improved driver."""
+"""Refinement Agent: fuses multiple variant coverage results into an improved driver.
+
+Takes the current round's compiled variants + previous round's fused driver,
+analyzes their coverage contributions, and asks an LLM to produce a single
+fused driver that combines the best strategies from each. Also advances the
+temperature index to trigger the next iteration round.
+
+Note: Empirical testing shows cross-strategy fusion often produces "mediocre
+averages" rather than improvements. Future work may replace this with
+coverage-guided incremental generation.
+"""
 
 from __future__ import annotations
 
@@ -118,6 +128,7 @@ def refinement_node(state: PipelineState) -> dict:
         and v["compile_status"] == "ok"
     ]
     fusion_candidates = current_round + prev_fused
+    print(f"[Refinement] Fusing {len(fusion_candidates)} variants (round={current_idx})", flush=True)
 
     if not fusion_candidates:
         messages.append("[Refinement] No compiled variants to refine")

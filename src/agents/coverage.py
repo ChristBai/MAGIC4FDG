@@ -1,4 +1,15 @@
-"""Coverage Agent: runs fuzz drivers and collects coverage with reachability analysis."""
+"""Coverage Agent: runs fuzz drivers and collects coverage with reachability analysis.
+
+For each compiled variant in the current iteration round:
+1. Runs LibFuzzer in fork mode inside Docker with coverage instrumentation
+2. Collects llvm-cov line/branch coverage data
+3. Performs LLVM CFG reachability analysis to identify which uncovered lines
+   are actually reachable from the fuzz entry point (filters false positives)
+
+The reachability analysis uses clang -emit-llvm to get IR, parses the CFG,
+and does BFS from entry to find reachable basic blocks. Uncovered lines in
+unreachable blocks are marked as such so downstream agents don't waste effort.
+"""
 
 from __future__ import annotations
 
@@ -241,6 +252,8 @@ def coverage_node(state: PipelineState) -> dict:
     iteration = state.get("iteration", 0) + 1
 
     messages.append(f"[Coverage] Starting iteration {iteration} (temp_idx={current_idx})")
+    current_round = [v for v in variants if v["compile_status"] == "ok" and v.get("iteration") == current_idx]
+    print(f"[Coverage] Iteration {iteration}, {len(current_round)} variants to fuzz ({fuzz_seconds}s each)", flush=True)
 
     reachable_lines = _analyze_reachability(target_config)
     if reachable_lines:
@@ -257,6 +270,7 @@ def coverage_node(state: PipelineState) -> dict:
             continue
 
         result = _run_coverage_for_variant(variant, target_config, fuzz_seconds)
+        print(f"[Coverage]   {result['id']}: {result['coverage_pct']:.1f}%", flush=True)
 
         if reachable_lines:
             result["uncovered_lines"] = _mark_reachability(

@@ -1,4 +1,9 @@
-"""Supervisor: CLI entry point for the multi-agent fuzz driver pipeline."""
+"""Supervisor: CLI entry point for the multi-agent fuzz driver pipeline.
+
+Orchestrates the full pipeline: loads target config, initializes state with
+temperature schedule, invokes the LangGraph, and saves results (best driver,
+all variants, markdown/JSON reports) to generated/iterations/<library>/<timestamp>/.
+"""
 
 from __future__ import annotations
 

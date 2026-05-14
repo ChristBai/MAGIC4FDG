@@ -1,4 +1,15 @@
-"""Docker execution wrapper for compilation, fuzzing, and coverage collection."""
+"""Docker execution wrapper for compilation, fuzzing, and coverage collection.
+
+All compilation and fuzzing runs inside a Docker container (fuzzforge:latest)
+with the project root mounted at /workspace. This isolates the host from
+ASan-instrumented binaries and provides a consistent clang/llvm toolchain.
+
+Key design decisions:
+- Fork mode (-fork=1): Each fuzz input runs in a subprocess, so ASan crashes
+  don't kill the main fuzzer process and coverage data is always collected.
+- ASAN_OPTIONS=halt_on_error=0: Allows fuzzing to continue past crashes.
+- Coverage uses -fprofile-instr-generate + -fcoverage-mapping for llvm-cov.
+"""
 
 from __future__ import annotations
 

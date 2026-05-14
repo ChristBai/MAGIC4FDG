@@ -1,4 +1,9 @@
-"""Token usage tracking for LLM calls across the pipeline."""
+"""Token usage tracking for LLM calls across the pipeline.
+
+Provides a global TokenTracker that accumulates prompt/completion token counts
+per agent and per model. Used by all agents via get_tracker().record() and
+reported in the final pipeline output and report.md.
+"""
 
 from __future__ import annotations
 

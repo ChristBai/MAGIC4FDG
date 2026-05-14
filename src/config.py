@@ -1,4 +1,8 @@
-"""Target config loading and path resolution."""
+"""Target config loading and path resolution.
+
+Provides ROOT (project root path) and utilities to load/validate target library
+configuration JSON files used by the pipeline.
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,15 @@
-"""Generation Agent: produces multiple fuzz driver variants using different strategies."""
+"""Generation Agent: produces multiple fuzz driver variants using different strategies.
+
+Generates N variants = models × strategies at a fixed temperature per round.
+Three literature-backed strategies produce structurally different drivers:
+- parse: Feed raw fuzz bytes to parsing APIs (PromptFuzz/FUDGE style)
+- api-chain: Multi-API call sequences with state transitions (CKGFuzzer style)
+- roundtrip: Parse → modify → serialize → re-parse (MUTATO style)
+
+In the temperature-escalation iteration model, each round uses a different
+temperature from the schedule (0.4 → 0.7 → 0.9). The strategy suffix in the
+prompt has the most significant impact on coverage outcomes.
+"""
 
 from __future__ import annotations
 
@@ -90,13 +101,15 @@ def generation_node(state: PipelineState) -> dict:
     current_temp = temp_schedule[min(temp_idx, len(temp_schedule) - 1)]
 
     variant_configs = _build_variant_configs(current_temp)
+    print(f"[Generation] Round {temp_idx + 1}, temp={current_temp}, {len(variant_configs)} variants", flush=True)
 
     variants: list[DriverVariant] = list(state.get("variants", []))
     messages = list(state.get("messages", []))
     messages.append(f"[Generation] Starting round {temp_idx + 1} with temperature={current_temp}")
 
-    for config in variant_configs:
+    for i, config in enumerate(variant_configs, 1):
         variant_id = _make_variant_id(config)
+        print(f"[Generation]   ({i}/{len(variant_configs)}) {variant_id}...", flush=True)
         prompt = _build_prompt(target_config, config["prompt_strategy"], research_summary)
 
         try:
@@ -111,6 +124,7 @@ def generation_node(state: PipelineState) -> dict:
             source_code = strip_code_fences(raw_code)
         except Exception as e:
             source_code = ""
+            print(f"[Generation]   FAILED {variant_id}: {e}", flush=True)
             messages.append(f"[Generation] Failed {variant_id}: {e}")
 
         variant: DriverVariant = {

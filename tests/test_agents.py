@@ -210,8 +210,9 @@ class TestGenerationAgent(unittest.TestCase):
         self.assertIn("basic", vid)
         self.assertIn("t04", vid)
 
+    @patch("src.agents.generation._build_variant_configs")
     @patch("src.agents.generation.create_variant_llm")
-    def test_generation_node_produces_variants(self, mock_create: MagicMock) -> None:
+    def test_generation_node_produces_variants(self, mock_create: MagicMock, mock_configs: MagicMock) -> None:
         from src.agents.generation import generation_node
 
         mock_llm = MagicMock()
@@ -219,6 +220,11 @@ class TestGenerationAgent(unittest.TestCase):
         mock_response.content = "```cpp\nint main() {}\n```"
         mock_llm.invoke.return_value = mock_response
         mock_create.return_value = mock_llm
+
+        mock_configs.return_value = [
+            {"model": "gpt-4o", "prompt_strategy": "parse", "temperature": 0.7},
+            {"model": "gpt-4o", "prompt_strategy": "api-chain", "temperature": 0.7},
+        ]
 
         state = {
             "target_config": {
@@ -229,11 +235,9 @@ class TestGenerationAgent(unittest.TestCase):
                 "source_files": ["test.c"],
             },
             "research_summary": "analysis here",
-            "variant_matrix": [
-                {"model": "gpt-4o", "prompt_strategy": "parse", "temperature": 0.7},
-                {"model": "gpt-4o", "prompt_strategy": "api-chain", "temperature": 0.7},
-            ],
             "messages": [],
+            "temperature_schedule": [0.7],
+            "current_temp_idx": 0,
         }
 
         result = generation_node(state)
@@ -357,6 +361,7 @@ exit:
                     "branch_coverage_pct": 0.0,
                     "uncovered_lines": [],
                     "unique_coverage": [],
+                    "iteration": 0,
                 },
             ],
             "fuzz_seconds": 10,
@@ -364,6 +369,7 @@ exit:
             "iteration": 0,
             "target_coverage": 70.0,
             "max_iterations": 3,
+            "current_temp_idx": 0,
         }
 
         result = coverage_node(state)
@@ -474,15 +480,17 @@ class TestRefinementAgent(unittest.TestCase):
                     "branch_coverage_pct": 30.0,
                     "uncovered_lines": [],
                     "unique_coverage": [],
+                    "iteration": 0,
                 },
             ],
             "messages": [],
             "iteration": 1,
+            "current_temp_idx": 0,
         }
 
         result = refinement_node(state)
         self.assertEqual(len(result["variants"]), 2)
-        self.assertEqual(result["variants"][-1]["id"], "fused_iter1")
+        self.assertEqual(result["variants"][-1]["id"], "fused_iter0")
         self.assertEqual(result["variants"][-1]["compile_status"], "pending")
         self.assertIn("[Refinement]", result["messages"][0])
 

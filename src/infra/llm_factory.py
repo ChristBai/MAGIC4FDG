@@ -1,4 +1,14 @@
-"""LLM factory for creating ChatOpenAI instances from config file."""
+"""LLM factory for creating ChatOpenAI instances from llm_config.json.
+
+Resolution order for model/endpoint/key:
+1. Explicit function arguments
+2. llm_config.json (matched by model name)
+3. Environment variables (LLM_MODEL, LLM_API_KEY, LLM_API_URL)
+4. Defaults
+
+Supports multiple models in config for variant generation (e.g., sonnet + opus).
+Each model entry specifies its own api_url and api_key for proxy routing.
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,12 @@
-"""Research Agent: analyzes target library source code to identify fuzzing strategies."""
+"""Research Agent: analyzes target library source code to identify fuzzing strategies.
+
+Extracts public API signatures from the target library's header file, then asks
+an LLM to produce a structured analysis including: API inventory by category,
+typical call sequences, memory management patterns, and fuzzing strategies.
+
+The output (research_summary) is consumed by the Generation Agent as context
+for producing fuzz driver variants.
+"""
 
 from __future__ import annotations
 
@@ -66,6 +74,7 @@ def _render_research_prompt(target_config: dict, source_code: str) -> str:
 def research_node(state: PipelineState) -> dict:
     """LangGraph node: analyze target library and produce research summary."""
     target_config = state["target_config"]
+    print(f"[Research] Analyzing {target_config.get('library_name', '?')}...", flush=True)
 
     source_code = _read_source_files(target_config)
     prompt = _render_research_prompt(target_config, source_code)
@@ -77,6 +86,7 @@ def research_node(state: PipelineState) -> dict:
     get_tracker().record("research", "default", prompt_tok, completion_tok)
 
     research_summary = response.content if isinstance(response.content, str) else str(response.content)
+    print(f"[Research] Done ({len(research_summary)} chars)", flush=True)
 
     return {
         "research_summary": research_summary,

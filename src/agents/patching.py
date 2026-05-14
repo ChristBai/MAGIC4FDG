@@ -1,4 +1,10 @@
-"""Patching Agent: fixes compilation errors in generated fuzz drivers."""
+"""Patching Agent: fixes compilation errors in generated fuzz drivers.
+
+For each variant with compile_status="pending", attempts Docker compilation.
+If compilation fails, sends the source code + error messages to an LLM for
+repair, retrying up to max_compile_retries times. Successfully compiled
+variants get compile_status="ok" and proceed to coverage measurement.
+"""
 
 from __future__ import annotations
 
@@ -103,6 +109,9 @@ def patching_node(state: PipelineState) -> dict:
     max_retries = state.get("max_compile_retries", 3)
     messages = list(state.get("messages", []))
 
+    pending = [v for v in variants if v["compile_status"] == "pending"]
+    print(f"[Patching] {len(pending)} pending variants to compile", flush=True)
+
     patched_variants: list[DriverVariant] = []
 
     for variant in variants:
@@ -110,6 +119,7 @@ def patching_node(state: PipelineState) -> dict:
             patched_variants.append(variant)
             continue
 
+        print(f"[Patching]   {variant['id']}...", flush=True)
         patched = _patch_single_variant(variant, target_config, max_retries, messages)
         patched_variants.append(patched)
 

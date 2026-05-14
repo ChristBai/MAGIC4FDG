@@ -1,4 +1,10 @@
-"""Pipeline state definitions for the multi-agent fuzz driver generation system."""
+"""Pipeline state definitions for the multi-agent fuzz driver generation system.
+
+Defines the TypedDicts that flow through the LangGraph StateGraph:
+- VariantConfig: model/strategy/temperature for a single generation call
+- DriverVariant: a fuzz driver with its compilation and coverage status
+- PipelineState: the full state shared across all agent nodes
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,16 @@
-"""LangGraph state graph definition for the multi-agent fuzz driver pipeline."""
+"""LangGraph state graph definition for the multi-agent fuzz driver pipeline.
+
+Defines the DAG of agent nodes and routing logic:
+  Research → Generation → Patching → Coverage
+                                        ↓
+                              target met or temps exhausted → END
+                                        ↓
+                              Refinement → Generation → Patching → Coverage → ...
+
+Routing after coverage checks: target coverage reached, temperature schedule
+exhausted, or max_iterations exceeded. If none, routes to refinement which
+advances the temperature index and triggers a new generation round.
+"""
 
 from __future__ import annotations
 
