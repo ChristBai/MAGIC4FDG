@@ -1,0 +1,9 @@
+{
+  "library_name": "cjson",
+  "header": "examples/cjson_lib/cJSON.h",
+  "source_files": ["examples/cjson_lib/cJSON.c"],
+  "include_dirs": ["examples/cjson_lib"],
+  "seed_corpus": "examples/cjson_lib/seed_corpus",
+  "language": "C",
+  "description": "Lightweight JSON parser for C"
+}

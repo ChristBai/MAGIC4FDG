@@ -2,65 +2,71 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from .llm_factory import create_variant_llm
-from .state import DriverVariant, PipelineState, VariantConfig
+from src.infra.llm_factory import create_variant_llm
+from src.infra.token_tracker import extract_token_usage, get_tracker
+from src.pipeline.state import DriverVariant, PipelineState, VariantConfig
+from src.utils import strip_code_fences
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from generate_driver import render_prompt, strip_code_fences
-from target_config import ROOT
+GENERATION_TEMPLATE = (Path(__file__).resolve().parents[2] / "prompts" / "generation_prompt.txt").read_text(
+    encoding="utf-8"
+)
 
-EXAMPLE_PROMPT_SUFFIX = """
+STRATEGY_SUFFIXES = {
+    "parse": """
+## Strategy: Parse-Centric (PromptFuzz-style)
 
-Here is an example of a well-written fuzz driver for a similar function:
+Feed raw fuzz bytes directly to ALL parsing API variants. Maximize parser path coverage:
+- Call every parse function variant (with/without length, with/without opts)
+- Use different option combinations (require_null_terminated = true/false)
+- Exercise error paths by feeding truncated/malformed data
+- After successful parse, do minimal downstream ops (Print, GetArraySize) to trigger post-parse paths
+- Do NOT focus on construction APIs — prioritize parser internals
+""",
+    "api-chain": """
+## Strategy: API-Chain (CKGFuzzer-style)
 
-```cpp
-#include <cstdint>
-#include <cstddef>
-#include <cstring>
-#include "target.h"
+Use fuzz bytes to drive multi-API call sequences covering state transitions:
+- Use first bytes as path selectors (switch on data[0] % N)
+- Each path exercises a different API combination chain (create→add→query→modify→delete)
+- Cover ownership transfer (DetachItem→AddItem to different parent)
+- Cover edge cases: empty containers, index out of bounds, NULL keys
+- Allocate via Create* APIs, modify via Add*/Replace*/Delete*, query via Get*/Has*, cleanup via Delete
+- Do NOT just parse — focus on construction and manipulation APIs
+- IMPORTANT: Do NOT call *_InitHooks or similar hook-setting APIs unless you provide valid malloc/free function pointers
+""",
+    "roundtrip": """
+## Strategy: Round-Trip (MUTATO-style)
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
-    if (size == 0) return 0;
-    // Create null-terminated copy for string APIs
-    char *buf = new char[size + 1];
-    memcpy(buf, data, size);
-    buf[size] = '\\0';
-    // Call target with fuzz data
-    auto *result = target_parse(buf);
-    if (result) target_free(result);
-    delete[] buf;
-    return 0;
+Parse → Modify → Serialize → Re-parse to cover both directions:
+- Parse fuzz input into internal representation
+- Apply mutations driven by fuzz bytes (add fields, delete fields, replace values, change types)
+- Serialize back to string (both Print and PrintUnformatted)
+- Re-parse the serialized output
+- Compare or further manipulate the re-parsed result
+- This exercises serializer formatting, escaping, buffer management paths that parse-only never reaches
+- IMPORTANT: Do NOT call *_InitHooks or similar hook-setting APIs unless you provide valid malloc/free function pointers
+""",
 }
-```
-
-Generate a driver following this pattern but adapted to the specific target function.
-"""
 
 
 def _build_prompt(target_config: dict, strategy: str, research_summary: str) -> str:
     """Build the generation prompt based on strategy."""
-    base_prompt = render_prompt(target_config)
+    include_dirs = target_config.get("include_dirs", [])
+    base_prompt = (
+        GENERATION_TEMPLATE
+        .replace("{{LIBRARY_NAME}}", target_config.get("library_name", ""))
+        .replace("{{LANGUAGE}}", target_config.get("language", "C"))
+        .replace("{{HEADER}}", target_config.get("header", ""))
+        .replace("{{INCLUDE_DIRS}}", ", ".join(include_dirs))
+        .replace("{{RESEARCH_SUMMARY}}", research_summary or "(not available)")
+    )
 
-    if strategy == "basic":
-        return base_prompt
-
-    if strategy == "research":
-        return (
-            base_prompt
-            + "\n\n## Additional Context from Code Analysis\n\n"
-            + research_summary
-            + "\n\nUse the above analysis to generate a driver that exercises diverse code paths."
-        )
-
-    if strategy == "example":
-        return base_prompt + EXAMPLE_PROMPT_SUFFIX
-
-    return base_prompt
+    suffix = STRATEGY_SUFFIXES.get(strategy, "")
+    return base_prompt + suffix
 
 
 def _make_variant_id(config: VariantConfig) -> str:
@@ -71,18 +77,25 @@ def _make_variant_id(config: VariantConfig) -> str:
 
 
 def generation_node(state: PipelineState) -> dict:
-    """LangGraph node: generate multiple fuzz driver variants."""
+    """LangGraph node: generate multiple fuzz driver variants.
+
+    Uses the current temperature from the temperature schedule.
+    Each iteration generates models × strategies variants at a single temperature.
+    """
     target_config = state["target_config"]
     research_summary = state.get("research_summary", "")
-    variant_matrix = state.get("variant_matrix", [])
 
-    if not variant_matrix:
-        variant_matrix = _default_variant_matrix()
+    temp_schedule = state.get("temperature_schedule", [0.7])
+    temp_idx = state.get("current_temp_idx", 0)
+    current_temp = temp_schedule[min(temp_idx, len(temp_schedule) - 1)]
 
-    variants: list[DriverVariant] = []
+    variant_configs = _build_variant_configs(current_temp)
+
+    variants: list[DriverVariant] = list(state.get("variants", []))
     messages = list(state.get("messages", []))
+    messages.append(f"[Generation] Starting round {temp_idx + 1} with temperature={current_temp}")
 
-    for config in variant_matrix:
+    for config in variant_configs:
         variant_id = _make_variant_id(config)
         prompt = _build_prompt(target_config, config["prompt_strategy"], research_summary)
 
@@ -92,6 +105,8 @@ def generation_node(state: PipelineState) -> dict:
                 SystemMessage(content="You are an expert C/C++ security engineer. Output only valid C++ source code."),
                 HumanMessage(content=prompt),
             ])
+            prompt_tok, completion_tok = extract_token_usage(response)
+            get_tracker().record("generation", config["model"], prompt_tok, completion_tok)
             raw_code = response.content if isinstance(response.content, str) else str(response.content)
             source_code = strip_code_fences(raw_code)
         except Exception as e:
@@ -109,6 +124,7 @@ def generation_node(state: PipelineState) -> dict:
             "branch_coverage_pct": 0.0,
             "uncovered_lines": [],
             "unique_coverage": [],
+            "iteration": temp_idx,
         }
         variants.append(variant)
         messages.append(f"[Generation] Generated {variant_id} ({len(source_code)} chars)")
@@ -119,20 +135,15 @@ def generation_node(state: PipelineState) -> dict:
     }
 
 
-def _default_variant_matrix() -> list[VariantConfig]:
-    """Build variant matrix from llm_config.json.
-
-    Generates: len(models) × len(strategies) × len(temperatures) variants.
-    Falls back to environment variables if config file is missing.
-    """
-    from .llm_factory import _load_config
+def _build_variant_configs(temperature: float) -> list[VariantConfig]:
+    """Build variant configs for a single temperature (models × strategies)."""
+    from src.infra.llm_factory import _load_config
 
     config = _load_config()
     models_cfg = config.get("models", [])
     matrix_cfg = config.get("variant_matrix", {})
 
-    strategies = matrix_cfg.get("strategies", ["basic", "research", "example"])
-    temperatures = matrix_cfg.get("temperatures", [0.7])
+    strategies = matrix_cfg.get("strategies", ["parse", "api-chain", "roundtrip"])
 
     if not models_cfg:
         import os
@@ -142,10 +153,31 @@ def _default_variant_matrix() -> list[VariantConfig]:
     matrix: list[VariantConfig] = []
     for model_info in models_cfg:
         for strategy in strategies:
-            for temp in temperatures:
-                matrix.append({
-                    "model": model_info["name"],
-                    "prompt_strategy": strategy,
-                    "temperature": temp,
-                })
+            matrix.append({
+                "model": model_info["name"],
+                "prompt_strategy": strategy,
+                "temperature": temperature,
+            })
     return matrix
+
+
+def _default_variant_matrix() -> list[VariantConfig]:
+    """Build variant matrix for the first iteration (uses first temperature).
+
+    Kept for backward compatibility with supervisor initial state.
+    """
+    from src.infra.llm_factory import _load_config
+
+    config = _load_config()
+    matrix_cfg = config.get("variant_matrix", {})
+    temperatures = matrix_cfg.get("temperatures", [0.7])
+    return _build_variant_configs(temperatures[0])
+
+
+def get_temperature_schedule() -> list[float]:
+    """Get the temperature schedule from config."""
+    from src.infra.llm_factory import _load_config
+
+    config = _load_config()
+    matrix_cfg = config.get("variant_matrix", {})
+    return matrix_cfg.get("temperatures", [0.7])

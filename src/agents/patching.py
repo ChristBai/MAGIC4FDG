@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from .docker_runner import compile_driver
-from .llm_factory import create_llm
-from .state import DriverVariant, PipelineState
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from generate_driver import strip_code_fences
+from src.infra.docker_runner import compile_driver
+from src.infra.llm_factory import create_llm
+from src.infra.token_tracker import extract_token_usage, get_tracker
+from src.pipeline.state import DriverVariant, PipelineState
+from src.utils import strip_code_fences
 
 PATCH_TEMPLATE = (Path(__file__).resolve().parents[2] / "prompts" / "patching_prompt.txt").read_text(
     encoding="utf-8"
@@ -23,12 +21,14 @@ def _render_patch_prompt(target_config: dict, driver_code: str, compile_errors: 
     """Render the patching prompt with error context."""
     include_dirs = target_config.get("include_dirs", [])
     return (
-        PATCH_TEMPLATE.replace("{{FUNCTION_NAME}}", target_config.get("function_name", ""))
-        .replace("{{FUNCTION_SIGNATURE}}", target_config.get("signature", ""))
+        PATCH_TEMPLATE.replace("{{LIBRARY_NAME}}", target_config.get("library_name", ""))
         .replace("{{HEADER}}", target_config.get("header", ""))
         .replace("{{INCLUDE_DIRS}}", ", ".join(include_dirs))
         .replace("{{DRIVER_CODE}}", driver_code)
         .replace("{{COMPILE_ERRORS}}", compile_errors)
+        # Legacy placeholders - keep for backward compat with prompt file
+        .replace("{{FUNCTION_NAME}}", target_config.get("library_name", ""))
+        .replace("{{FUNCTION_SIGNATURE}}", "")
     )
 
 
@@ -70,6 +70,9 @@ def _patch_single_variant(
             HumanMessage(content=prompt),
         ])
 
+        prompt_tok, completion_tok = extract_token_usage(response)
+        get_tracker().record("patching", variant["config"]["model"], prompt_tok, completion_tok)
+
         raw = response.content if isinstance(response.content, str) else str(response.content)
         variant["source_code"] = strip_code_fences(raw)
 
@@ -103,7 +106,7 @@ def patching_node(state: PipelineState) -> dict:
     patched_variants: list[DriverVariant] = []
 
     for variant in variants:
-        if variant["compile_status"] == "ok":
+        if variant["compile_status"] != "pending":
             patched_variants.append(variant)
             continue
 

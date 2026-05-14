@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-import sys
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
 
 class TestState(unittest.TestCase):
     def test_variant_config_structure(self) -> None:
-        from agents.state import VariantConfig
+        from src.pipeline.state import VariantConfig
 
         config: VariantConfig = {
             "model": "gpt-4o",
@@ -22,7 +19,7 @@ class TestState(unittest.TestCase):
         self.assertEqual(config["model"], "gpt-4o")
 
     def test_driver_variant_structure(self) -> None:
-        from agents.state import DriverVariant
+        from src.pipeline.state import DriverVariant
 
         variant: DriverVariant = {
             "id": "test_variant",
@@ -41,7 +38,7 @@ class TestState(unittest.TestCase):
 
 class TestResearchAgent(unittest.TestCase):
     def test_read_source_files(self) -> None:
-        from agents.research import _read_source_files
+        from src.agents.research import _read_source_files
 
         config = {
             "header": "examples/cjson_lib/cJSON.h",
@@ -52,66 +49,64 @@ class TestResearchAgent(unittest.TestCase):
         self.assertGreater(len(source), 100)
 
     def test_render_research_prompt(self) -> None:
-        from agents.research import _render_research_prompt
+        from src.agents.research import _render_research_prompt
 
         config = {
-            "target_name": "cjson",
-            "function_name": "cJSON_Parse",
-            "signature": "cJSON *cJSON_Parse(const char *value)",
+            "library_name": "cjson",
+            "language": "C",
             "description": "Parse JSON string",
         }
         prompt = _render_research_prompt(config, "void foo() {}")
         self.assertNotIn("{{", prompt)
-        self.assertIn("cJSON_Parse", prompt)
+        self.assertIn("cjson", prompt)
         self.assertIn("void foo()", prompt)
 
-    @patch("agents.research.create_llm")
+    @patch("src.agents.research.create_llm")
     def test_research_node_calls_llm(self, mock_create_llm: MagicMock) -> None:
-        from agents.research import research_node
+        from src.agents.research import research_node
 
         mock_llm = MagicMock()
         mock_response = MagicMock()
-        mock_response.content = "Analysis: this function parses JSON"
+        mock_response.content = "Analysis: this library parses JSON"
         mock_llm.invoke.return_value = mock_response
         mock_create_llm.return_value = mock_llm
 
         state = {
             "target_config": {
-                "target_name": "cjson",
-                "function_name": "cJSON_Parse",
-                "signature": "cJSON *cJSON_Parse(const char *value)",
+                "library_name": "cjson",
+                "language": "C",
                 "description": "Parse JSON",
                 "header": "examples/cjson_lib/cJSON.h",
                 "source_files": ["examples/cjson_lib/cJSON.c"],
+                "include_dirs": ["examples/cjson_lib"],
             },
             "messages": [],
         }
 
         result = research_node(state)
-        self.assertEqual(result["research_summary"], "Analysis: this function parses JSON")
+        self.assertEqual(result["research_summary"], "Analysis: this library parses JSON")
         self.assertIn("[Research]", result["messages"][0])
         mock_llm.invoke.assert_called_once()
 
 
 class TestPatchingAgent(unittest.TestCase):
     def test_render_patch_prompt(self) -> None:
-        from agents.patching import _render_patch_prompt
+        from src.agents.patching import _render_patch_prompt
 
         config = {
-            "function_name": "cJSON_Parse",
-            "signature": "cJSON *cJSON_Parse(const char *value)",
+            "library_name": "cjson",
             "header": "cJSON.h",
             "include_dirs": ["examples/cjson_lib"],
         }
         prompt = _render_patch_prompt(config, "bad code", "error: unknown type")
-        self.assertIn("cJSON_Parse", prompt)
+        self.assertIn("cjson", prompt)
         self.assertIn("bad code", prompt)
         self.assertIn("error: unknown type", prompt)
         self.assertNotIn("{{", prompt)
 
-    @patch("agents.patching.compile_driver")
+    @patch("src.agents.patching.compile_driver")
     def test_patch_variant_compiles_first_try(self, mock_compile: MagicMock) -> None:
-        from agents.patching import _patch_single_variant
+        from src.agents.patching import _patch_single_variant
 
         mock_compile.return_value = (True, "")
 
@@ -132,10 +127,10 @@ class TestPatchingAgent(unittest.TestCase):
         self.assertEqual(result["compile_status"], "ok")
         self.assertIn("first try", messages[0])
 
-    @patch("agents.patching.create_llm")
-    @patch("agents.patching.compile_driver")
+    @patch("src.agents.patching.create_llm")
+    @patch("src.agents.patching.compile_driver")
     def test_patch_variant_fixes_after_retry(self, mock_compile: MagicMock, mock_create_llm: MagicMock) -> None:
-        from agents.patching import _patch_single_variant
+        from src.agents.patching import _patch_single_variant
 
         mock_compile.side_effect = [
             (False, "error: missing header"),
@@ -160,61 +155,64 @@ class TestPatchingAgent(unittest.TestCase):
             "unique_coverage": [],
         }
         messages: list[str] = []
-        result = _patch_single_variant(variant, {"function_name": "f", "signature": "void f()", "header": "h.h", "include_dirs": []}, 3, messages)
+        result = _patch_single_variant(variant, {"library_name": "test", "header": "h.h", "include_dirs": []}, 3, messages)
         self.assertEqual(result["compile_status"], "ok")
         self.assertEqual(result["patch_attempts"], 1)
 
 
 class TestGenerationAgent(unittest.TestCase):
-    def test_build_prompt_basic(self) -> None:
-        from agents.generation import _build_prompt
+    def test_build_prompt_parse(self) -> None:
+        from src.agents.generation import _build_prompt
 
         config = {
-            "target_name": "cjson",
-            "function_name": "cJSON_Parse",
-            "signature": "cJSON *cJSON_Parse(const char *value)",
+            "library_name": "cjson",
             "header": "cJSON.h",
-            "description": "Parse JSON",
             "language": "C",
-            "cleanup_function": "cJSON_Delete",
-            "source_files": ["cJSON.c"],
             "include_dirs": ["."],
-            "seed_corpus": "seed/",
         }
-        prompt = _build_prompt(config, "basic", "some research")
-        self.assertIn("cJSON_Parse", prompt)
-        self.assertNotIn("Additional Context", prompt)
+        prompt = _build_prompt(config, "parse", "some research")
+        self.assertIn("cjson", prompt)
+        self.assertIn("some research", prompt)
+        self.assertIn("Parse-Centric", prompt)
+        self.assertNotIn("{{", prompt)
 
-    def test_build_prompt_research(self) -> None:
-        from agents.generation import _build_prompt
+    def test_build_prompt_api_chain(self) -> None:
+        from src.agents.generation import _build_prompt
 
         config = {
-            "target_name": "cjson",
-            "function_name": "cJSON_Parse",
-            "signature": "cJSON *cJSON_Parse(const char *value)",
+            "library_name": "cjson",
             "header": "cJSON.h",
-            "description": "Parse JSON",
             "language": "C",
-            "cleanup_function": "cJSON_Delete",
-            "source_files": ["cJSON.c"],
             "include_dirs": ["."],
-            "seed_corpus": "seed/",
         }
-        prompt = _build_prompt(config, "research", "Found 5 branches in parser")
-        self.assertIn("Additional Context", prompt)
+        prompt = _build_prompt(config, "api-chain", "Found 5 branches in parser")
         self.assertIn("Found 5 branches", prompt)
+        self.assertIn("API-Chain", prompt)
+
+    def test_build_prompt_roundtrip(self) -> None:
+        from src.agents.generation import _build_prompt
+
+        config = {
+            "library_name": "cjson",
+            "header": "cJSON.h",
+            "language": "C",
+            "include_dirs": ["."],
+        }
+        prompt = _build_prompt(config, "roundtrip", "research data")
+        self.assertIn("research data", prompt)
+        self.assertIn("Round-Trip", prompt)
 
     def test_make_variant_id(self) -> None:
-        from agents.generation import _make_variant_id
+        from src.agents.generation import _make_variant_id
 
         config = {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.4}
         vid = _make_variant_id(config)
         self.assertIn("basic", vid)
         self.assertIn("t04", vid)
 
-    @patch("agents.generation.create_variant_llm")
+    @patch("src.agents.generation.create_variant_llm")
     def test_generation_node_produces_variants(self, mock_create: MagicMock) -> None:
-        from agents.generation import generation_node
+        from src.agents.generation import generation_node
 
         mock_llm = MagicMock()
         mock_response = MagicMock()
@@ -224,21 +222,16 @@ class TestGenerationAgent(unittest.TestCase):
 
         state = {
             "target_config": {
-                "target_name": "test",
-                "function_name": "test_func",
-                "signature": "void test_func(const char *s)",
+                "library_name": "test",
                 "header": "test.h",
-                "description": "test",
                 "language": "C",
-                "cleanup_function": "",
-                "source_files": ["test.c"],
                 "include_dirs": ["."],
-                "seed_corpus": "seed/",
+                "source_files": ["test.c"],
             },
             "research_summary": "analysis here",
             "variant_matrix": [
-                {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
-                {"model": "gpt-4o", "prompt_strategy": "research", "temperature": 0.7},
+                {"model": "gpt-4o", "prompt_strategy": "parse", "temperature": 0.7},
+                {"model": "gpt-4o", "prompt_strategy": "api-chain", "temperature": 0.7},
             ],
             "messages": [],
         }
@@ -251,7 +244,7 @@ class TestGenerationAgent(unittest.TestCase):
 
 class TestGraph(unittest.TestCase):
     def test_graph_compiles(self) -> None:
-        from agents.graph import compile_graph
+        from src.pipeline.graph import compile_graph
 
         graph = compile_graph()
         self.assertIsNotNone(graph)
@@ -259,7 +252,7 @@ class TestGraph(unittest.TestCase):
 
 class TestCoverageAgent(unittest.TestCase):
     def test_parse_cfg_output(self) -> None:
-        from agents.coverage import _parse_cfg_output
+        from src.agents.coverage import _parse_cfg_output
 
         cfg_text = """entry:
   br label %loop
@@ -277,7 +270,7 @@ exit:
         self.assertIn("exit", graph.get("loop", set()))
 
     def test_reachable_blocks(self) -> None:
-        from agents.coverage import _reachable_blocks
+        from src.agents.coverage import _reachable_blocks
 
         graph = {
             "entry": {"a", "b"},
@@ -296,7 +289,7 @@ exit:
         self.assertNotIn("d", reachable)
 
     def test_mark_reachability(self) -> None:
-        from agents.coverage import _mark_reachability
+        from src.agents.coverage import _mark_reachability
 
         uncovered = [
             {"file": "test.c", "line_no": 10, "count": 0, "reachable": True},
@@ -310,7 +303,7 @@ exit:
         self.assertTrue(result[2]["reachable"])
 
     def test_extract_uncovered_lines(self) -> None:
-        from agents.coverage import _extract_uncovered_lines
+        from src.agents.coverage import _extract_uncovered_lines
 
         report = {
             "coverage": {
@@ -330,10 +323,10 @@ exit:
         self.assertEqual(len(uncovered), 1)
         self.assertEqual(uncovered[0]["line_no"], 5)
 
-    @patch("agents.coverage.run_fuzz_with_coverage")
-    @patch("agents.coverage._analyze_reachability")
+    @patch("src.agents.coverage.run_fuzz_with_coverage")
+    @patch("src.agents.coverage._analyze_reachability")
     def test_coverage_node(self, mock_reachability: MagicMock, mock_fuzz: MagicMock) -> None:
-        from agents.coverage import coverage_node
+        from src.agents.coverage import coverage_node
 
         mock_reachability.return_value = {10, 20, 30}
         mock_fuzz.return_value = {
@@ -383,7 +376,7 @@ exit:
 
 class TestRefinementAgent(unittest.TestCase):
     def test_build_variant_analysis(self) -> None:
-        from agents.refinement import _build_variant_analysis
+        from src.agents.refinement import _build_variant_analysis
 
         variants = [
             {
@@ -404,7 +397,7 @@ class TestRefinementAgent(unittest.TestCase):
         self.assertIn("55.0%", analysis)
 
     def test_build_uncovered_reachable(self) -> None:
-        from agents.refinement import _build_uncovered_reachable
+        from src.agents.refinement import _build_uncovered_reachable
 
         variants = [
             {
@@ -428,11 +421,10 @@ class TestRefinementAgent(unittest.TestCase):
         self.assertNotIn("test.c:25", result)
 
     def test_render_refinement_prompt(self) -> None:
-        from agents.refinement import _render_refinement_prompt
+        from src.agents.refinement import _render_refinement_prompt
 
         config = {
-            "function_name": "cJSON_Parse",
-            "signature": "cJSON *cJSON_Parse(const char *value)",
+            "library_name": "cjson",
             "header": "cJSON.h",
             "language": "C",
         }
@@ -451,12 +443,12 @@ class TestRefinementAgent(unittest.TestCase):
             },
         ]
         prompt = _render_refinement_prompt(config, variants)
-        self.assertIn("cJSON_Parse", prompt)
+        self.assertIn("cjson", prompt)
         self.assertNotIn("{{", prompt)
 
-    @patch("agents.refinement.create_llm")
+    @patch("src.agents.refinement.create_llm")
     def test_refinement_node_produces_fused(self, mock_create_llm: MagicMock) -> None:
-        from agents.refinement import refinement_node
+        from src.agents.refinement import refinement_node
 
         mock_llm = MagicMock()
         mock_response = MagicMock()
@@ -466,8 +458,7 @@ class TestRefinementAgent(unittest.TestCase):
 
         state = {
             "target_config": {
-                "function_name": "test_func",
-                "signature": "void test_func()",
+                "library_name": "test",
                 "header": "test.h",
                 "language": "C",
             },
@@ -498,20 +489,19 @@ class TestRefinementAgent(unittest.TestCase):
 
 class TestSupervisor(unittest.TestCase):
     def test_supervisor_imports(self) -> None:
-        from agents.supervisor import run_pipeline, main
+        from src.pipeline.supervisor import run_pipeline, main
         self.assertTrue(callable(run_pipeline))
         self.assertTrue(callable(main))
 
 
 class TestReport(unittest.TestCase):
     def test_generate_report(self) -> None:
-        from agents.report import generate_report
+        from src.pipeline.report import generate_report
 
         state = {
             "target_config": {
-                "target_name": "cjson",
-                "function_name": "cJSON_Parse",
-                "signature": "cJSON *cJSON_Parse(const char *value)",
+                "library_name": "cjson",
+                "description": "Lightweight JSON parser",
             },
             "iteration": 2,
             "target_coverage": 70.0,
@@ -551,14 +541,13 @@ class TestReport(unittest.TestCase):
 
         report = generate_report(state)
         self.assertIn("cjson", report)
-        self.assertIn("cJSON_Parse", report)
         self.assertIn("65.0%", report)
         self.assertIn("NOT reached", report)
         self.assertIn("v1", report)
         self.assertIn("Execution Log", report)
 
     def test_variant_table_empty(self) -> None:
-        from agents.report import _variant_table
+        from src.pipeline.report import _variant_table
 
         result = _variant_table([])
         self.assertIn("No variants generated.", result)

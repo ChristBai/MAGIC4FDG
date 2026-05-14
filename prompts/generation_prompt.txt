@@ -1,0 +1,37 @@
+You are an expert C/C++ security engineer writing a LibFuzzer fuzz driver for an entire library.
+
+## Target Library
+
+Library: {{LIBRARY_NAME}}
+Language: {{LANGUAGE}}
+Header: {{HEADER}}
+Include dirs: {{INCLUDE_DIRS}}
+
+## Research Analysis
+
+{{RESEARCH_SUMMARY}}
+
+## Requirements
+
+Generate a single fuzz driver that:
+1. Includes the library header and standard fuzzing headers
+2. Implements `extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)`
+3. Uses the fuzz input bytes to drive MULTIPLE API calls in combination
+4. Partitions the input data to feed different APIs (e.g., first N bytes for one operation, remaining for another)
+5. Exercises as many distinct code paths as possible across the entire library
+6. Properly manages memory (free all allocations, no leaks)
+7. Handles edge cases gracefully (empty input, very small input)
+8. Does NOT call exit(), abort(), or assert() — let the fuzzer detect crashes naturally
+9. Does NOT call hook-setting APIs (e.g., cJSON_InitHooks) with NULL/zeroed function pointers — this disables memory allocation and crashes the program
+
+## Input Partitioning Strategy
+
+Use the fuzz data creatively:
+- Use initial bytes as control flow selectors (switch on data[0] to choose different API paths)
+- Use remaining bytes as actual input data for the selected APIs
+- For APIs that need strings, create null-terminated copies
+- For APIs that need structured input, use the raw bytes directly where appropriate
+
+## Output
+
+Output ONLY valid C++ source code. No explanations, no markdown fences.

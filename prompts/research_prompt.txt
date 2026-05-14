@@ -1,34 +1,22 @@
-You are a C/C++ security researcher analyzing a library to identify effective fuzzing strategies.
+You are a security researcher designing a fuzz driver for the {{LIBRARY_NAME}} library ({{LANGUAGE}}).
+Description: {{DESCRIPTION}}
 
-Analyze the following target library source code and provide a structured analysis that will help generate high-coverage fuzz drivers.
-
-## Target Information
-
-Library: {{LIBRARY_NAME}}
-Target function: {{FUNCTION_NAME}}
-Signature: {{FUNCTION_SIGNATURE}}
-Description: {{TARGET_DESCRIPTION}}
-
-## Source Code
-
+Public API signatures from the header:
 {{SOURCE_CODE}}
 
-## Analysis Required
+Provide a concise analysis:
 
-Provide your analysis in the following structure:
+1. API INVENTORY: List key public functions by category (parse/create/modify/query/delete/serialize).
 
-1. **Input Format**: What kind of input does the target function expect? (raw bytes, null-terminated string, structured data, etc.)
+2. CALL SEQUENCES: Show 2-3 typical multi-API call chains (e.g., parse->query->delete).
 
-2. **Code Paths**: List the major code paths/branches in the target function. For each path, describe:
-   - What condition triggers it
-   - What input characteristics would reach it
+3. MEMORY PATTERNS: Which functions allocate, and what frees them.
 
-3. **Edge Cases**: Identify boundary conditions and edge cases that a fuzz driver should exercise:
-   - Empty input
-   - Maximum/minimum sizes
-   - Special characters or byte patterns
-   - Malformed input that triggers error handling
+4. FUZZING STRATEGY: Design 2 approaches to maximize branch coverage:
+- Approach A: Feed raw fuzz bytes to parsing APIs, exercise downstream APIs on result.
+- Approach B: Use fuzz bytes to drive construction APIs, then serialize/query.
+For each: list API call order, how to interpret fuzz input bytes, cleanup needed.
 
-4. **API Dependencies**: Does the target function call other library functions? List them and note if they need setup/teardown.
+5. HARD-TO-REACH PATHS: List 3-5 specific branches that need special input patterns.
 
-5. **Fuzzing Strategy Recommendations**: Based on the analysis, suggest 2-3 different approaches for constructing fuzz input that would maximize code coverage. Each approach should target different code paths.
+Be concise. No boilerplate.

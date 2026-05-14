@@ -8,12 +8,9 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from .docker_runner import run_fuzz_with_coverage, _docker_run
-from .state import DriverVariant, PipelineState
-
-import sys
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from target_config import ROOT
+from src.infra.docker_runner import run_fuzz_with_coverage, _docker_run
+from src.pipeline.state import DriverVariant, PipelineState
+from src.config import ROOT
 
 
 def _extract_uncovered_lines(coverage_report: dict) -> list[dict]:
@@ -207,7 +204,7 @@ def _run_coverage_for_variant(
         driver_filename=driver_filename,
     )
 
-    if "error" in report and report.get("coverage_pct", 0) == 0:
+    if "error" in report:
         variant["coverage_pct"] = 0.0
         variant["branch_coverage_pct"] = 0.0
         variant["uncovered_lines"] = []
@@ -231,14 +228,19 @@ def _run_coverage_for_variant(
 
 
 def coverage_node(state: PipelineState) -> dict:
-    """LangGraph node: run coverage collection for all compiled variants."""
+    """LangGraph node: run coverage for current round variants only.
+
+    Only runs fuzz+coverage on variants from the current temperature round
+    (identified by iteration field). Historical variants keep their existing data.
+    """
     target_config = state["target_config"]
     variants = list(state.get("variants", []))
     fuzz_seconds = state.get("fuzz_seconds", 15)
     messages = list(state.get("messages", []))
+    current_idx = state.get("current_temp_idx", 0)
     iteration = state.get("iteration", 0) + 1
 
-    messages.append(f"[Coverage] Starting iteration {iteration}")
+    messages.append(f"[Coverage] Starting iteration {iteration} (temp_idx={current_idx})")
 
     reachable_lines = _analyze_reachability(target_config)
     if reachable_lines:
@@ -247,6 +249,10 @@ def coverage_node(state: PipelineState) -> dict:
     covered_variants: list[DriverVariant] = []
     for variant in variants:
         if variant["compile_status"] != "ok":
+            covered_variants.append(variant)
+            continue
+
+        if variant.get("iteration") != current_idx:
             covered_variants.append(variant)
             continue
 
