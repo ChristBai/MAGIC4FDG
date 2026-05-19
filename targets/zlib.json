@@ -1,0 +1,26 @@
+{
+  "library_name": "zlib",
+  "header": "benchmarks/libs/zlib/src/zlib.h",
+  "source_files": [
+    "benchmarks/libs/zlib/src/adler32.c",
+    "benchmarks/libs/zlib/src/compress.c",
+    "benchmarks/libs/zlib/src/crc32.c",
+    "benchmarks/libs/zlib/src/deflate.c",
+    "benchmarks/libs/zlib/src/gzclose.c",
+    "benchmarks/libs/zlib/src/gzlib.c",
+    "benchmarks/libs/zlib/src/gzread.c",
+    "benchmarks/libs/zlib/src/gzwrite.c",
+    "benchmarks/libs/zlib/src/infback.c",
+    "benchmarks/libs/zlib/src/inffast.c",
+    "benchmarks/libs/zlib/src/inflate.c",
+    "benchmarks/libs/zlib/src/inftrees.c",
+    "benchmarks/libs/zlib/src/trees.c",
+    "benchmarks/libs/zlib/src/uncompr.c",
+    "benchmarks/libs/zlib/src/zutil.c"
+  ],
+  "include_dirs": ["benchmarks/libs/zlib/src"],
+  "seed_corpus": "benchmarks/libs/zlib/seed_corpus",
+  "dictionary": "benchmarks/libs/zlib/zlib.dict",
+  "language": "C",
+  "description": "General-purpose lossless data compression library"
+}

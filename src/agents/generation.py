@@ -61,10 +61,22 @@ Parse → Modify → Serialize → Re-parse to cover both directions:
 - This exercises serializer formatting, escaping, buffer management paths that parse-only never reaches
 - IMPORTANT: Do NOT call *_InitHooks or similar hook-setting APIs unless you provide valid malloc/free function pointers
 """,
+    "targeted": """
+## Strategy: Targeted Coverage Expansion
+
+Based on the coverage feedback above, specifically target the UNCOVERED functions and branches:
+- For each zero-coverage function listed, construct valid arguments and call it
+- For each uncovered line shown with source context, reason about what API call sequence reaches it
+- Chain API calls that lead to the uncovered code paths
+- Use fuzz bytes to vary arguments and trigger different branches within targeted functions
+- Prioritize functions with 0% coverage over those with partial coverage
+- If no coverage feedback is available yet, use the api-chain approach: multi-API call sequences with state transitions
+- IMPORTANT: Do NOT call *_InitHooks or similar hook-setting APIs unless you provide valid malloc/free function pointers
+""",
 }
 
 
-def _build_prompt(target_config: dict, strategy: str, research_summary: str) -> str:
+def _build_prompt(target_config: dict, strategy: str, research_summary: str, coverage_feedback: str = "") -> str:
     """Build the generation prompt based on strategy."""
     include_dirs = target_config.get("include_dirs", [])
     base_prompt = (
@@ -74,6 +86,7 @@ def _build_prompt(target_config: dict, strategy: str, research_summary: str) -> 
         .replace("{{HEADER}}", target_config.get("header", ""))
         .replace("{{INCLUDE_DIRS}}", ", ".join(include_dirs))
         .replace("{{RESEARCH_SUMMARY}}", research_summary or "(not available)")
+        .replace("{{COVERAGE_FEEDBACK}}", coverage_feedback or "(first iteration — no prior coverage data)")
     )
 
     suffix = STRATEGY_SUFFIXES.get(strategy, "")
@@ -95,6 +108,7 @@ def generation_node(state: PipelineState) -> dict:
     """
     target_config = state["target_config"]
     research_summary = state.get("research_summary", "")
+    coverage_feedback = state.get("coverage_feedback", "")
 
     temp_schedule = state.get("temperature_schedule", [0.7])
     temp_idx = state.get("current_temp_idx", 0)
@@ -110,14 +124,24 @@ def generation_node(state: PipelineState) -> dict:
     for i, config in enumerate(variant_configs, 1):
         variant_id = _make_variant_id(config)
         print(f"[Generation]   ({i}/{len(variant_configs)}) {variant_id}...", flush=True)
-        prompt = _build_prompt(target_config, config["prompt_strategy"], research_summary)
+        prompt = _build_prompt(target_config, config["prompt_strategy"], research_summary, coverage_feedback)
 
         try:
             llm = create_variant_llm(config["model"], config["temperature"])
-            response = llm.invoke([
-                SystemMessage(content="You are an expert C/C++ security engineer. Output only valid C++ source code."),
-                HumanMessage(content=prompt),
-            ])
+            for _attempt in range(3):
+                try:
+                    response = llm.invoke([
+                        SystemMessage(content="You are an expert C/C++ security engineer. Output only valid C++ source code."),
+                        HumanMessage(content=prompt),
+                    ])
+                    break
+                except Exception as retry_err:
+                    if _attempt < 2:
+                        import time
+                        print(f"[Generation]   retry {_attempt+1}/3 for {variant_id}...", flush=True)
+                        time.sleep(5 * (_attempt + 1))
+                    else:
+                        raise retry_err
             prompt_tok, completion_tok = extract_token_usage(response)
             get_tracker().record("generation", config["model"], prompt_tok, completion_tok)
             raw_code = response.content if isinstance(response.content, str) else str(response.content)
@@ -137,6 +161,8 @@ def generation_node(state: PipelineState) -> dict:
             "coverage_pct": 0.0,
             "branch_coverage_pct": 0.0,
             "uncovered_lines": [],
+            "covered_lines": [],
+            "function_coverage": [],
             "unique_coverage": [],
             "iteration": temp_idx,
         }

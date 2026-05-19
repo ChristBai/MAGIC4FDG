@@ -1,0 +1,10 @@
+{
+  "library_name": "jsoncpp",
+  "header": "benchmarks/libs/jsoncpp/src/json/json.h",
+  "source_files": ["benchmarks/libs/jsoncpp/src/jsoncpp.cpp"],
+  "include_dirs": ["benchmarks/libs/jsoncpp/src"],
+  "seed_corpus": "benchmarks/libs/jsoncpp/seed_corpus",
+  "dictionary": "examples/cjson_lib/json.dict",
+  "language": "C++",
+  "description": "JSON reader and writer library for C++"
+}

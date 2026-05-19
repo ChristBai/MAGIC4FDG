@@ -1,0 +1,14 @@
+{
+  "library_name": "libpcap",
+  "header": "/opt/bench/libpcap/include/pcap/pcap.h",
+  "build_command": "benchmarks/libs/libpcap/build.sh",
+  "static_libs": ["/opt/bench/libpcap/lib/libpcap.a"],
+  "link_flags": [],
+  "include_dirs": ["/opt/bench/libpcap/include"],
+  "source_files": [],
+  "coverage_sources": ["/opt/bench/libpcap/src"],
+  "seed_corpus": "benchmarks/libs/libpcap/seed_corpus",
+  "dictionary": "benchmarks/libs/libpcap/pcap.dict",
+  "language": "C",
+  "description": "Portable packet capture library"
+}

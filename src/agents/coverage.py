@@ -21,7 +21,7 @@ from pathlib import Path
 
 from src.infra.docker_runner import run_fuzz_with_coverage, _docker_run
 from src.pipeline.state import DriverVariant, PipelineState
-from src.config import ROOT
+from src.config import ROOT, resolve_project_path
 
 
 def _extract_uncovered_lines(coverage_report: dict) -> list[dict]:
@@ -49,6 +49,23 @@ def _extract_uncovered_lines(coverage_report: dict) -> list[dict]:
                 })
 
     return uncovered
+
+
+def _extract_covered_lines(coverage_report: dict) -> list[dict]:
+    """Extract covered lines from llvm-cov export JSON."""
+    covered = []
+    files = coverage_report.get("coverage", {}).get("files", [])
+    for file_info in files:
+        filename = file_info.get("filename", "")
+        segments = file_info.get("segments", [])
+        for seg in segments:
+            if len(seg) >= 5 and seg[2] > 0 and seg[4]:
+                covered.append({
+                    "file": filename,
+                    "line_no": seg[0],
+                    "count": seg[2],
+                })
+    return covered
 
 
 def _parse_cfg_output(cfg_text: str) -> dict[str, set[str]]:
@@ -105,6 +122,14 @@ def _get_debug_line_mapping(ir_text: str) -> dict[str, list[int]]:
 
     Returns {block_label: [line_numbers]}.
     """
+    # Phase 1: build metadata ID -> line number index from !DILocation definitions
+    metadata_lines: dict[str, int] = {}
+    for line in ir_text.splitlines():
+        m = re.match(r"^!(\d+)\s*=\s*!DILocation\(line:\s*(\d+)", line)
+        if m:
+            metadata_lines[m.group(1)] = int(m.group(2))
+
+    # Phase 2: walk function bodies, mapping !dbg refs to source lines per block
     mapping: dict[str, list[int]] = {}
     current_block = "entry"
     mapping[current_block] = []
@@ -119,11 +144,9 @@ def _get_debug_line_mapping(ir_text: str) -> dict[str, list[int]]:
 
         dbg_match = re.search(r"!dbg\s+!(\d+)", line)
         if dbg_match and current_block in mapping:
-            pass
-
-        line_match = re.search(r"!DILocation\(line:\s*(\d+)", line)
-        if line_match and current_block in mapping:
-            mapping[current_block].append(int(line_match.group(1)))
+            meta_id = dbg_match.group(1)
+            if meta_id in metadata_lines:
+                mapping[current_block].append(metadata_lines[meta_id])
 
     return mapping
 
@@ -173,11 +196,10 @@ cat /tmp/target.ll
 
         reachable = _reachable_blocks(graph, entry)
 
+        block_to_lines = _get_debug_line_mapping(ir_text)
         reachable_lines: set[int] = set()
-        for line in ir_text.splitlines():
-            line_match = re.search(r"!DILocation\(line:\s*(\d+)", line)
-            if line_match:
-                reachable_lines.add(int(line_match.group(1)))
+        for block_label in reachable:
+            reachable_lines.update(block_to_lines.get(block_label, []))
 
         return reachable_lines
 
@@ -196,6 +218,19 @@ def _mark_reachability(uncovered_lines: list[dict], reachable_lines: set[int]) -
         line_info["reachable"] = line_no in reachable_lines
 
     return uncovered_lines
+
+
+def load_source_context(target_config: dict) -> dict[str, dict[int, str]]:
+    """Load target source files into {filename: {line_no: line_text}} mapping."""
+    context: dict[str, dict[int, str]] = {}
+    for src_file in target_config.get("source_files", []):
+        path = resolve_project_path(src_file)
+        if path.exists():
+            lines = path.read_text(encoding="utf-8").splitlines()
+            line_map = {i + 1: line for i, line in enumerate(lines)}
+            context[str(path)] = line_map
+            context[path.name] = line_map
+    return context
 
 
 def _run_coverage_for_variant(
@@ -234,6 +269,8 @@ def _run_coverage_for_variant(
     variant["branch_coverage_pct"] = (100.0 * branch_covered / branch_count) if branch_count else 0.0
 
     variant["uncovered_lines"] = _extract_uncovered_lines(report)
+    variant["covered_lines"] = _extract_covered_lines(report)
+    variant["function_coverage"] = report.get("function_coverage", [])
 
     return variant
 

@@ -1,0 +1,14 @@
+{
+  "library_name": "harfbuzz",
+  "header": "/opt/bench/harfbuzz/include/harfbuzz/hb.h",
+  "build_command": "benchmarks/libs/harfbuzz/build.sh",
+  "static_libs": ["/opt/bench/harfbuzz/lib/libharfbuzz.a"],
+  "link_flags": ["-lstdc++"],
+  "include_dirs": ["/opt/bench/harfbuzz/include/harfbuzz"],
+  "source_files": [],
+  "coverage_sources": ["/opt/bench/harfbuzz/src"],
+  "seed_corpus": "benchmarks/libs/harfbuzz/seed_corpus",
+  "dictionary": "benchmarks/libs/harfbuzz/hb.dict",
+  "language": "C++",
+  "description": "OpenType text shaping engine"
+}

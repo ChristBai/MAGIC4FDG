@@ -1,0 +1,14 @@
+{
+  "library_name": "libpng",
+  "header": "/opt/bench/libpng/include/libpng16/png.h",
+  "build_command": "benchmarks/libs/libpng/build.sh",
+  "static_libs": ["/opt/bench/libpng/lib/libpng16.a", "/opt/bench/zlib/lib/libz.a"],
+  "link_flags": ["-lm"],
+  "include_dirs": ["/opt/bench/libpng/include/libpng16", "/opt/bench/zlib/include"],
+  "source_files": [],
+  "coverage_sources": ["/opt/bench/libpng/src"],
+  "seed_corpus": "benchmarks/libs/libpng/seed_corpus",
+  "dictionary": "benchmarks/libs/libpng/png.dict",
+  "language": "C",
+  "description": "PNG reference library for reading and writing PNG images"
+}

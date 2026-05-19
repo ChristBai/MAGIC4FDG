@@ -1,0 +1,14 @@
+{
+  "library_name": "libxml2",
+  "header": "/opt/bench/libxml2/include/libxml2/libxml/parser.h",
+  "build_command": "benchmarks/libs/libxml2/build.sh",
+  "static_libs": ["/opt/bench/libxml2/lib/libxml2.a"],
+  "link_flags": ["-lm"],
+  "include_dirs": ["/opt/bench/libxml2/include/libxml2"],
+  "source_files": [],
+  "coverage_sources": ["/opt/bench/libxml2/src"],
+  "seed_corpus": "benchmarks/libs/libxml2/seed_corpus",
+  "dictionary": "benchmarks/libs/libxml2/xml.dict",
+  "language": "C",
+  "description": "XML parser and toolkit for GNOME"
+}

@@ -16,8 +16,15 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_FIELDS = [
     "library_name",
     "header",
+    "include_dirs",
+]
+
+LIST_OF_STRINGS_FIELDS = [
     "source_files",
     "include_dirs",
+    "static_libs",
+    "link_flags",
+    "coverage_sources",
 ]
 
 
@@ -37,7 +44,10 @@ def load_target_config(
     if missing:
         raise RuntimeError(f"target config {path} is missing required fields: {', '.join(missing)}")
 
-    for key in ("source_files", "include_dirs"):
+    if not target.get("source_files") and not target.get("static_libs"):
+        raise RuntimeError(f"target config {path} must have source_files or static_libs")
+
+    for key in LIST_OF_STRINGS_FIELDS:
         if key in target:
             if not isinstance(target[key], list) or not all(isinstance(item, str) for item in target[key]):
                 raise RuntimeError(f"target config field {key} must be a list of strings")

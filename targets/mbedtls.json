@@ -1,0 +1,14 @@
+{
+  "library_name": "mbedtls",
+  "header": "/opt/bench/mbedtls/include/mbedtls/ssl.h",
+  "build_command": "benchmarks/libs/mbedtls/build.sh",
+  "static_libs": ["/opt/bench/mbedtls/lib/libmbedtls.a", "/opt/bench/mbedtls/lib/libmbedx509.a", "/opt/bench/mbedtls/lib/libmbedcrypto.a"],
+  "link_flags": [],
+  "include_dirs": ["/opt/bench/mbedtls/include"],
+  "source_files": [],
+  "coverage_sources": ["/opt/bench/mbedtls/src"],
+  "seed_corpus": "benchmarks/libs/mbedtls/seed_corpus",
+  "dictionary": "benchmarks/libs/mbedtls/mbedtls.dict",
+  "language": "C",
+  "description": "Lightweight TLS/crypto library for embedded systems"
+}

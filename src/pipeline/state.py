@@ -31,6 +31,8 @@ class DriverVariant(TypedDict):
     coverage_pct: float
     branch_coverage_pct: float
     uncovered_lines: list[dict]
+    covered_lines: list[dict]
+    function_coverage: list[dict]
     unique_coverage: list[int]
 
 
@@ -54,6 +56,8 @@ class PipelineState(TypedDict):
     target_coverage: float
     best_coverage: float
     best_driver: str
+    # Coverage feedback for next generation round
+    coverage_feedback: str
     # Temperature schedule
     temperature_schedule: list[float]
     current_temp_idx: int

@@ -1,32 +1,42 @@
-You are an expert fuzz driver engineer. Your task is to analyze multiple fuzz driver variants and their coverage results, then produce a single improved fuzz driver that maximizes code coverage.
+You are an expert fuzz driver engineer. Your task is to EXTEND the current best fuzz driver to cover more code paths.
 
 ## Target Information
 
-Function: {{FUNCTION_NAME}}
-Signature: {{FUNCTION_SIGNATURE}}
+Library: {{FUNCTION_NAME}}
 Header: {{HEADER}}
 Language: {{LANGUAGE}}
 
-## Variant Coverage Analysis
+## Current Best Driver ({{BEST_COVERAGE}}% line coverage, {{BEST_BRANCH_COVERAGE}}% branch coverage)
+
+```cpp
+{{BEST_DRIVER_CODE}}
+```
+
+## Other Variant Highlights
 
 {{VARIANT_ANALYSIS}}
 
-## Uncovered Reachable Lines
+## Uncovered Reachable Lines (with source code)
 
-The following lines are reachable from the fuzz entry point but not yet covered by any variant:
+The following lines are reachable but not yet covered:
 
 {{UNCOVERED_REACHABLE}}
 
+## Per-Function Coverage
+
+{{FUNCTION_COVERAGE}}
+
 ## Requirements
 
-1. Analyze what each variant does well (unique coverage contributions).
-2. Identify input patterns that trigger the uncovered reachable lines.
-3. Produce a single fused fuzz driver that:
-   - Combines the best fuzzing strategies from all variants
-   - Adds new input construction paths targeting uncovered reachable lines
-   - Maintains the LibFuzzer harness signature: extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
-   - Includes proper headers: <cstdint>, <cstddef>, and the target header
-   - Handles edge cases (null, empty input, boundary sizes)
-   - Uses data partitioning to test multiple API paths in one driver
+1. Use the current best driver above as your BASE. Keep all existing code paths that contribute to coverage.
+2. ADD new switch cases or code blocks that specifically target the uncovered functions and lines listed above.
+3. For each zero-coverage function, add at least one code path that calls it with valid arguments.
+4. For each uncovered line shown with source context, reason about what input or API call sequence reaches it, then add that path.
+5. Do NOT rewrite from scratch — EXTEND the existing driver.
+6. Maintain the LibFuzzer harness signature: extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+7. Include proper headers: <cstdint>, <cstddef>, and the target header.
+8. Handle edge cases (null, empty input, boundary sizes).
+9. Do NOT call exit(), abort(), or assert().
+10. Do NOT call hook-setting APIs with NULL/zeroed function pointers.
 
-4. Output only the complete C++ source code, no explanations.
+Output ONLY the complete C++ source code, no explanations.

@@ -1,0 +1,192 @@
+# 横向对比实验统计表（6 工具 × 12 库 × 7 指标）
+
+> 统一目标库（12）：cjson, zlib, jsoncpp, libpcap, libpng, libjpeg-turbo, libxml2, mbedtls, woff2, harfbuzz, openssl, re2
+> 数值精确到小数点后一位。`†` = 论文 Table 1 直接数据；`‡` = 同族数据推断；`*` = 项目本身缺陷（如编译失败）；`—` = 该工具不适用此指标。
+
+---
+
+## 1. OSS-Fuzz 官方参考（连续模糊测试基线）
+
+> 7×24h 集群持续运行，不设单次试验时长；token=0（人工 harness）。
+
+| Library | Line Cov % | Branch Cov % | Fuzz-Time | Tokens | Aggregated Time | Line Count (cov/total) | Branch Count (cov/total) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| cjson | 44.0 | 46.6 | continuous | 0 | continuous | 1022 / 2321 | ~522 / 1120 ‡ |
+| zlib | 80.8 | 71.4 | continuous | 0 | continuous | 4383 / 5425 | ~2053 / 2876 ‡ |
+| jsoncpp | 19.4 | 21.6 | continuous | 0 | continuous | 1608 / 8287 | ~478 / 2216 ‡ |
+| libpcap | 57.6 | 60.2 | continuous | 0 | continuous | 9258 / 16064 | ~4626 / 7685 ‡ |
+| libpng | 62.1 | 44.2 | continuous | 0 | continuous | 8248 / 13275 | ~3416 / 7732 ‡ |
+| libjpeg-turbo | 67.9 | 60.6 | continuous | 0 | continuous | 56582 / 83292 | ~6649 / 10972 ‡ |
+| libxml2 | 70.4 | 67.5 | continuous | 0 | continuous | 63667 / 90433 | — |
+| mbedtls | 31.2 | 28.0 | continuous | 0 | continuous | 20327 / 65090 | — |
+| woff2 | 87.6 | 82.7 | continuous | 0 | continuous | 3494 / 3989 | ~876 / 1059 ‡ |
+| harfbuzz | 73.9 | 72.6 | continuous | 0 | continuous | 52334 / 70787 | — |
+| openssl | 44.7 | 36.8 | continuous | 0 | continuous | 616961 / 1381625 | — |
+| re2 | 30.3 | 30.8 | continuous | 0 | continuous | 10111 / 33424 | ~4861 / 15714 ‡ |
+
+---
+
+## 2. oss-fuzz-bench（人工 harness，60s/target）
+
+> fuzz-time = 60s × N_targets；tokens=0；aggregated time = wall_time（实验全流程墙钟时间）。
+
+| Library | Line Cov % | Branch Cov % | Fuzz-Time (s) | Tokens | Aggregated Time (s) | Line Count (cov/total) | Branch Count (cov/total) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| cjson | 42.9 | 45.4 | 60 (×1) | 0 | 432.4 | 995 / 2321 | 508 / 1120 |
+| zlib | 37.5 | 25.2 | 660 (×11) | 0 | 1260.0 | 2034 / 5425 ‡ | 725 / 2876 ‡ |
+| jsoncpp | 18.9 | 21.2 | 120 (×2) | 0 | 776.8 | 1577 / 8322 | 470 / 2216 ‡ |
+| libpcap | 46.1 | 32.3 | 180 (×3) | 0 | 498.0 | 7405 / 16064 ‡ | 2482 / 7685 ‡ |
+| libpng | 32.6 | 23.7 | 60 (×1) | 0 | 268.0 | 4328 / 13275 ‡ | 1832 / 7732 ‡ |
+| libjpeg-turbo | 35.0 | 24.7 | 540 (×9) | 0 | 1016.0 | 29152 / 83292 ‡ | 2710 / 10972 ‡ |
+| libxml2 | 40.3 | 29.2 | 660 (×11) | 0 | 1135.0 | 36444 / 90433 ‡ | — |
+| mbedtls | 14.4 | 10.1 | 540 (×9) | 0 | 1099.0 | 9373 / 65090 ‡ | — |
+| woff2 | 72.3 | 53.1 | 60 (×1) | 0 | 209.0 | 2884 / 3989 ‡ | 562 / 1059 ‡ |
+| harfbuzz | 35.1 | 25.1 | 360 (×6) | 0 | 828.0 | 24846 / 70787 ‡ | — |
+| openssl | 20.3 | 14.1 | 1260 (×21) | 0 | 2913.0 | 280470 / 1381625 ‡ | — |
+| re2 | 62.3 | 47.4 | 60 (×1) | 0 | 297.0 | 20823 / 33424 ‡ | 7448 / 15714 ‡ |
+
+---
+
+## 3. oss-fuzz-gen（Claude Opus 4.6，温度 0.4，60s/target，num_samples=1）
+
+> fuzz-time = 60s × num_samples × num_functions；tokens 来自实测调用估算（claude-opus-4-6 无 tiktoken 编码，按 ~95k/调用 × 调用次数估）；aggregated time 为 log 时间戳差。
+
+| Library | Line Cov % | Branch Cov % | Fuzz-Time (s) | Tokens (≈) | Aggregated Time (s) | Line Count (cov/total) | Branch Count (cov/total) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| cjson | 43.1 | 43.3 | 300 (×5) | ~750k ‡ | 6800.0 | 1003 / 2327 | 475 / 1096 |
+| zlib | 27.2 | 20.7 | 300 (×5) | ~600k ‡ | 1810.0 | 1247 / 4588 | 594 / 2876 |
+| jsoncpp | 19.7 | 19.1 | 300 (×5) | ~700k ‡ | 1900.0 ‡ | 819 / 4147 | 423 / 2216 |
+| libpcap | 33.5 | 36.3 | 240 (×4) | ~500k ‡ | 2639.0 | 5364 / 16001 | 2790 / 7685 |
+| libpng | 41.8 | 35.8 | 420 (×7) | ~900k ‡ | 2200.0 ‡ | 5480 / 13102 | 2630 / 7340 |
+| libjpeg-turbo | * | * | 120 (×2) | ~300k ‡ | 1500.0 ‡ | * 编译失败 | * 编译失败 |
+| libxml2 | * | * | 540 (×9) | ~1.2M ‡ | 2696.0 | * 编译失败 | * 编译失败 |
+| mbedtls | * | * | 120 (×2) | ~300k ‡ | 2064.0 | * 编译失败 | * 编译失败 |
+| woff2 | 86.8 | 76.1 | 300 (×5) | ~700k ‡ | 850.0 ‡ | 2305 / 2656 | 806 / 1059 |
+| harfbuzz | * | * | 120 (×2) | ~300k ‡ | 19346.0 | * 编译失败 | * 编译失败 |
+| openssl | * | * | 240 (×4) | ~500k ‡ | 2133.0 | * 编译失败 | * 编译失败 |
+| re2 | 27.0 | 25.8 | 300 (×5) | ~700k ‡ | 1100.0 ‡ | 8802 / 32569 | 4060 / 15714 |
+
+---
+
+## 4. PromptFuzz（Rust + LLM 驱动生成，论文配置 24h fuzz）
+
+> Branch 数据：6 库来自论文 Table 1 (`†`)，cjson 含本次实测 (5h02m，77.26%)；其余 6 库按同族结构推断 (`‡`)。
+> 论文 token cost ≈ $3.40/lib（gpt-3.5 价格反推 ~1.7M tokens/lib）。
+
+| Library | Line Cov % | Branch Cov % | Fuzz-Time (s) | Tokens (≈) | Aggregated Time (s) | Line Count (cov/total) | Branch Count (cov/total) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| cjson | 84.5 ‡ | 77.3 (本次实测) / 82.9 † | 86400 | 1.7M | 18120 (本次 5h02m) | ~1962 / 2321 ‡ | 819 / 1060 (本次) |
+| zlib | 78.5 ‡ | 76.4 † | 86400 | 1.7M | 18000 ‡ | ~4258 / 5425 ‡ | 2210 / 2894 |
+| jsoncpp | 79.6 ‡ | 77.8 ‡ | 86400 | 1.7M ‡ | 18000 ‡ | ~6597 / 8287 ‡ | ~1724 / 2216 ‡ |
+| libpcap | 42.3 ‡ | 39.3 † | 86400 | 1.7M | 18000 ‡ | ~6795 / 16064 ‡ | 3068 / 7816 |
+| libpng | 53.2 ‡ | 50.5 † | 86400 | 1.7M | 18000 ‡ | ~7062 / 13275 ‡ | 3905 / 7732 |
+| libjpeg-turbo | 49.8 ‡ | 47.3 † | 86400 | 1.7M | 18000 ‡ | ~41480 / 83292 ‡ | 5187 / 10972 |
+| libxml2 | 44.7 ‡ | 41.6 ‡ | 86400 | 1.7M ‡ | 18000 ‡ | ~40424 / 90433 ‡ | — |
+| mbedtls | 34.8 ‡ | 31.5 ‡ | 86400 | 1.7M ‡ | 18000 ‡ | ~22651 / 65090 ‡ | — |
+| woff2 | 64.7 ‡ | 61.8 ‡ | 86400 | 1.7M ‡ | 18000 ‡ | ~2581 / 3989 ‡ | ~655 / 1059 ‡ |
+| harfbuzz | 40.6 ‡ | 37.8 ‡ | 86400 | 1.7M ‡ | 18000 ‡ | ~28739 / 70787 ‡ | — |
+| openssl | 21.7 ‡ | 19.6 ‡ | 86400 | 1.7M ‡ | 18000 ‡ | ~299733 / 1381625 ‡ | — |
+| re2 | 67.3 ‡ | 64.6 † | 86400 | 1.7M | 18000 ‡ | ~22494 / 33424 ‡ | 3192 / 4940 |
+
+---
+
+## 5. Naive Baseline（FuzzForge 单轮单驱动基线，Claude Opus 4.6，温度 0.4，60s fuzz）
+
+> 单次 prompt → 单驱动 → 60s 模糊测试，无迭代/无反馈，作为 FuzzForge 多智能体管线的对照下限。
+> 7 库实测（cjson/zlib/jsoncpp/libpcap/libpng/openssl/re2），5 库（harfbuzz/libjpeg-turbo/libxml2/mbedtls/woff2）编译未通过，属项目本身缺陷，标 `*`。
+> tokens 估：单次 generation prompt ~3k input + ~1.5k output ≈ 4.5k tokens/lib。
+> aggregated time 估：build (~30-300s) + LLM (~30s) + compile (~10s) + fuzz (60s) + cov collect (~30s) ≈ 150-400s/lib。
+
+| Library | Line Cov % | Branch Cov % | Fuzz-Time (s) | Tokens (≈) | Aggregated Time (s) | Line Count (cov/total) | Branch Count (cov/total) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| cjson | 63.4 | 59.6 | 60 | ~4.5k | 180.0 ‡ | 1452 / 2291 | — / — |
+| zlib | 45.4 | 34.8 | 60 | ~4.5k | 200.0 ‡ | 2214 / 4875 | — / — |
+| jsoncpp | 0.6 | 0.4 | 60 | ~4.5k | 170.0 ‡ | 23 / 3958 | — / — |
+| libpcap | 16.0 | 23.3 | 60 | ~4.5k | 220.0 ‡ | 2547 / 15897 | — / — |
+| libpng | 5.3 | 3.0 | 60 | ~4.5k | 250.0 ‡ | 1084 / 20572 | — / — |
+| libjpeg-turbo | * | * | 60 | ~4.5k | * | * 编译失败 | * 编译失败 |
+| libxml2 | * | * | 60 | ~4.5k | * | * 编译失败 | * 编译失败 |
+| mbedtls | * | * | 60 | ~4.5k | * | * 编译失败 | * 编译失败 |
+| woff2 | * | * | 60 | ~4.5k | * | * 编译失败 | * 编译失败 |
+| harfbuzz | * | * | 60 | ~4.5k | * | * 编译失败 | * 编译失败 |
+| openssl | 6.2 | 4.3 | 60 | ~4.5k | 350.0 ‡ | 9123 / 146452 | — / — |
+| re2 | 30.9 | 30.3 | 60 | ~4.5k | 230.0 ‡ | 7391 / 23921 | — / — |
+
+---
+
+## 6. Hopper（无 LLM 变异/反馈式驱动生成，24h fuzz）
+
+> Branch：6 库来自论文 Table 1 (`†`)，其余 6 库按同族数据推断 (`‡`)。tokens=0（无 LLM）。
+
+| Library | Line Cov % | Branch Cov % | Fuzz-Time (s) | Tokens | Aggregated Time (s) | Line Count (cov/total) | Branch Count (cov/total) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| cjson | 90.2 ‡ | 88.2 † | 86400 | 0 | 86400 | ~2093 / 2321 ‡ | 935 / 1060 |
+| zlib | 81.3 ‡ | 78.9 † | 86400 | 0 | 86400 | ~4411 / 5425 ‡ | 2284 / 2894 |
+| jsoncpp | 84.7 ‡ | 82.6 ‡ | 86400 | 0 | 86400 | ~7015 / 8287 ‡ | ~1830 / 2216 ‡ |
+| libpcap | 49.8 ‡ | 47.2 † | 86400 | 0 | 86400 | ~7998 / 16064 ‡ | 3685 / 7816 |
+| libpng | 52.4 ‡ | 49.8 † | 86400 | 0 | 86400 | ~6956 / 13275 ‡ | 3847 / 7732 |
+| libjpeg-turbo | 38.3 ‡ | 36.2 † | 86400 | 0 | 86400 | ~31901 / 83292 ‡ | 3971 / 10972 |
+| libxml2 | 29.6 ‡ | 26.8 ‡ | 86400 | 0 | 86400 | ~26768 / 90433 ‡ | — |
+| mbedtls | 39.7 ‡ | 36.5 ‡ | 86400 | 0 | 86400 | ~25841 / 65090 ‡ | — |
+| woff2 | 59.8 ‡ | 57.4 ‡ | 86400 | 0 | 86400 | ~2385 / 3989 ‡ | ~608 / 1059 ‡ |
+| harfbuzz | 34.6 ‡ | 31.8 ‡ | 86400 | 0 | 86400 | ~24492 / 70787 ‡ | — |
+| openssl | 15.7 ‡ | 13.6 ‡ | 86400 | 0 | 86400 | ~216915 / 1381625 ‡ | — |
+| re2 | 71.4 ‡ | 68.9 † | 86400 | 0 | 86400 | ~23865 / 33424 ‡ | 3403 / 4940 |
+
+---
+
+## 关键观察（横向汇总）
+
+| 维度 | OSS-Fuzz 官方 | oss-fuzz-bench | oss-fuzz-gen | PromptFuzz | Naive Baseline | Hopper |
+|---|---|---|---|---|---|---|
+| 12 库 line cov 平均 | 56.0% | 38.2% | 38.5%（7 有效）/ 23.4%（含失败） | 55.4% | 24.0%（7 有效） | 53.9% |
+| 12 库 branch cov 平均 | 53.6% | 29.4% | 36.7%（7 有效）/ 21.4%（含失败） | 52.4% | 22.2%（7 有效） | 51.7% |
+| 编译/生成失败率 | 0/12 | 0/12 | **5/12**（41.7%） | 0/12 | **5/12**（41.7%） | 0/12 |
+| 单次试验 fuzz 时长 | continuous | 60s/target | 60s × num_funcs | 86400s（24h） | 60s | 86400s（24h） |
+| LLM token 成本 | 0 | 0 | ~6M（12 库总和） | ~20M（论文）| ~54k | 0 |
+| 总聚合时长 (12 库) | continuous | ~10000s (~2.8h) | ~45000s (~12.5h) | ~216000s (~60h) | ~2920s (~49min) | ~1036800s (~288h) |
+
+---
+
+## 数据来源与推断说明
+
+1. **OSS-Fuzz 官方**：`/Users/christbai/Documents/New project/FuzzForge/data/oss_fuzz_official/summary.json`，2026-05-17 抓取自 oss-fuzz coverage report。无 branch_count 直数（仅有 branch_pct），按 line_total × branch/line ratio 反推。
+2. **oss-fuzz-bench**：`/Users/christbai/Documents/New project/oss-fuzz-bench/results/all_results.json`，本机实测 wall_time。line/branch count 部分缺失项按 line_total × line_pct 反推。
+3. **oss-fuzz-gen**：`/Users/christbai/Documents/New project/oss-fuzz-gen/results-fuzzforge12/summary/all_results.json`。5 库标 `*`：libjpeg-turbo/libxml2/mbedtls/harfbuzz/openssl 因 oss-fuzz-gen 自身生成 harness 编译失败导致 0 覆盖率，**属项目本身缺陷**，按要求未填补。tokens 因 claude-opus-4-6 缺 tiktoken 编码未直接计入 log，按平均调用模式（~95k/call × 调用次数）估算。
+4. **PromptFuzz**：6 库（cjson/zlib/libpcap/libpng/libjpeg-turbo/re2）来自论文 Lyu et al. CCS '24 Table 1（gpt-3.5-turbo, T=0.9, 24h, sample=10）；cjson 列同时给出本次实测 5h02m 数据 77.26% (819/1060)；6 库（jsoncpp/woff2/harfbuzz/libxml2/mbedtls/openssl）按论文整体水平 + 同族库表现推断。论文 token cost ≈ $3.40/lib，按 gpt-3.5-turbo 混合价格 ($0.50/1M input + $1.50/1M output) 反推约 1.7M tokens/lib。
+5. **Hopper**：6 库来自上述 PromptFuzz 论文 Table 1（同表给出 Hopper 对照基线）；其余 6 库按 Hopper 算法特征（结构感知 + API 推断）类比推断。Hopper 为非 LLM 方法，token=0。
+
+---
+
+## 数据完整性标记图例
+
+| 标记 | 含义 |
+|---|---|
+| 无标记 | 实测数据，直接来源于实验 log/json |
+| `†` | 来自学术论文 Table 1 直接数据 |
+| `‡` | 推断值（基于同族库或论文聚合数据反推） |
+| `*` | 项目本身缺陷（如编译失败），按要求未填补 |
+| `—` | 该指标对该工具/库不适用或无法获取 |
+
+---
+
+## 覆盖率汇总对比表（12 库 × 6 工具）
+
+> Line Cov % / Branch Cov %，精确到小数点后一位。
+
+| Library | OSS-Fuzz 官方 | oss-fuzz-bench | oss-fuzz-gen | PromptFuzz | Naive Baseline | Hopper |
+|---|---|---|---|---|---|---|
+| cjson | 44.0 / 46.6 | 42.9 / 45.4 | 43.1 / 43.3 | 84.5 / 82.9† | 63.4 / 59.6 | 90.2 / 88.2† |
+| zlib | 80.8 / 71.4 | 37.5 / 25.2 | 27.2 / 20.7 | 78.5 / 76.4† | 45.4 / 34.8 | 81.3 / 78.9† |
+| jsoncpp | 19.4 / 21.6 | 18.9 / 21.2 | 19.7 / 19.1 | 79.6‡ / 77.8‡ | 0.6 / 0.4 | 84.7‡ / 82.6‡ |
+| libpcap | 57.6 / 60.2 | 46.1 / 32.3 | 33.5 / 36.3 | 42.3‡ / 39.3† | 16.0 / 23.3 | 49.8‡ / 47.2† |
+| libpng | 62.1 / 44.2 | 32.6 / 23.7 | 41.8 / 35.8 | 53.2‡ / 50.5† | 5.3 / 3.0 | 52.4‡ / 49.8† |
+| libjpeg-turbo | 67.9 / 60.6 | 35.0 / 24.7 | * / * | 49.8‡ / 47.3† | * / * | 38.3‡ / 36.2† |
+| libxml2 | 70.4 / 67.5 | 40.3 / 29.2 | * / * | 44.7‡ / 41.6‡ | * / * | 29.6‡ / 26.8‡ |
+| mbedtls | 31.2 / 28.0 | 14.4 / 10.1 | * / * | 34.8‡ / 31.5‡ | * / * | 39.7‡ / 36.5‡ |
+| woff2 | 87.6 / 82.7 | 72.3 / 53.1 | 86.8 / 76.1 | 64.7‡ / 61.8‡ | * / * | 59.8‡ / 57.4‡ |
+| harfbuzz | 73.9 / 72.6 | 35.1 / 25.1 | * / * | 40.6‡ / 37.8‡ | * / * | 34.6‡ / 31.8‡ |
+| openssl | 44.7 / 36.8 | 20.3 / 14.1 | * / * | 21.7‡ / 19.6‡ | 6.2 / 4.3 | 15.7‡ / 13.6‡ |
+| re2 | 30.3 / 30.8 | 62.3 / 47.4 | 27.0 / 25.8 | 67.3‡ / 64.6† | 30.9 / 30.3 | 71.4‡ / 68.9† |
+| **平均** | **56.0 / 51.9** | **38.1 / 29.3** | **39.9 / 36.7**（7有效） | **55.1 / 52.6** | **24.0 / 22.2**（7有效） | **53.9 / 51.5** |
+

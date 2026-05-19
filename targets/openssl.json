@@ -1,0 +1,14 @@
+{
+  "library_name": "openssl",
+  "header": "/opt/bench/openssl/include/openssl/evp.h",
+  "build_command": "benchmarks/libs/openssl/build.sh",
+  "static_libs": ["/opt/bench/openssl/lib/libcrypto.a", "/opt/bench/openssl/lib/libssl.a"],
+  "link_flags": ["-lpthread", "-ldl"],
+  "include_dirs": ["/opt/bench/openssl/include"],
+  "source_files": [],
+  "coverage_sources": [],
+  "seed_corpus": "benchmarks/libs/openssl/seed_corpus",
+  "dictionary": "benchmarks/libs/openssl/openssl.dict",
+  "language": "C",
+  "description": "Full-featured TLS/SSL and crypto library"
+}

@@ -11,6 +11,10 @@ Include dirs: {{INCLUDE_DIRS}}
 
 {{RESEARCH_SUMMARY}}
 
+## Prior Coverage Feedback
+
+{{COVERAGE_FEEDBACK}}
+
 ## Requirements
 
 Generate a single fuzz driver that:

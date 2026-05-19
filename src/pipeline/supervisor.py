@@ -43,6 +43,7 @@ def run_pipeline(
         "target_coverage": target_coverage,
         "best_coverage": 0.0,
         "best_driver": "",
+        "coverage_feedback": "",
         "temperature_schedule": temp_schedule,
         "current_temp_idx": 0,
         "fuzz_seconds": fuzz_seconds,

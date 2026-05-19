@@ -1,0 +1,14 @@
+{
+  "library_name": "libjpeg-turbo",
+  "header": "/opt/bench/libjpeg-turbo/include/jpeglib.h",
+  "build_command": "benchmarks/libs/libjpeg-turbo/build.sh",
+  "static_libs": ["/opt/bench/libjpeg-turbo/lib/libjpeg.a"],
+  "link_flags": [],
+  "include_dirs": ["/opt/bench/libjpeg-turbo/include"],
+  "source_files": [],
+  "coverage_sources": ["/opt/bench/libjpeg-turbo/src"],
+  "seed_corpus": "benchmarks/libs/libjpeg-turbo/seed_corpus",
+  "dictionary": "benchmarks/libs/libjpeg-turbo/jpeg.dict",
+  "language": "C",
+  "description": "JPEG codec with SIMD acceleration"
+}

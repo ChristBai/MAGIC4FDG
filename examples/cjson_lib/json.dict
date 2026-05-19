@@ -1,17 +1,71 @@
+# JSON dictionary for fuzzing
+# Basic structural tokens
 "{"
 "}"
 "["
 "]"
 ":"
 ","
-"\""
-"\\"
-"\\u"
+
+# Value literals
 "true"
 "false"
 "null"
+
+# String delimiters and escapes
+"\""
+"\\\""
+"\\\\"
+"\\/"
+"\\b"
+"\\f"
+"\\n"
+"\\r"
+"\\t"
+"\\u0000"
+"\\u001f"
+"\\uFFFF"
+"\\uD800"
+"\\uDBFF"
+"\\uDC00"
+"\\uDFFF"
+
+# Number patterns
 "0"
+"-0"
 "1"
 "-1"
-"1.0"
-"1e10"
+"0.0"
+"1e1"
+"1E1"
+"1e+1"
+"1e-1"
+"1.0e1"
+"-1.0e-1"
+"9999999999999999"
+"1.7976931348623157e+308"
+"5e-324"
+
+# Common key patterns
+"\"key\""
+"\"name\""
+"\"value\""
+"\"type\""
+"\"id\""
+"\"data\""
+"\"items\""
+"\"count\""
+
+# Whitespace variants
+" "
+"\t"
+"\n"
+"\r"
+"\r\n"
+
+# Edge cases
+"{}"
+"[]"
+"\"\""
+"[null]"
+"{\"\":0}"

@@ -1,0 +1,26 @@
+You are an expert C/C++ security engineer. Write a LibFuzzer fuzz driver for the following library.
+
+## Target Library
+
+Library: {{LIBRARY_NAME}}
+Language: {{LANGUAGE}}
+Header: {{HEADER}}
+Include dirs: {{INCLUDE_DIRS}}
+
+## Header Content
+
+```
+{{HEADER_CONTENT}}
+```
+
+## Requirements
+
+Generate a single fuzz driver that:
+1. Includes the library header
+2. Implements `extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)`
+3. Uses the fuzz input bytes to exercise multiple API functions
+4. Properly manages memory (free all allocations)
+5. Handles edge cases (empty input, very small input)
+6. Does NOT call exit(), abort(), or assert()
+
+Output ONLY valid C++ source code. No explanations.

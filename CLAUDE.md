@@ -50,22 +50,23 @@ Temperature escalation: each round uses next temperature from schedule (e.g., 0.
 ### Key design decisions
 - **Fork mode** (`-fork=1`): LibFuzzer runs each input in subprocess; ASan crashes don't prevent coverage collection
 - **ASAN_OPTIONS**: `halt_on_error=0:exitcode=0:detect_leaks=0` for crash tolerance
-- **Strategy matters more than temperature**: api-chain consistently outperforms parse and roundtrip
-- **Coverage feedback gap**: Generation currently doesn't use prior coverage data (known limitation)
+- **Strategy matters more than temperature**: api-chain consistently outperforms roundtrip in first round
+- **Targeted strategy**: uses LLVM CFG reachability + prior coverage feedback to guide generation toward uncovered-but-reachable lines
+- **CFG reachability filtering**: avoids wasting LLM calls on structurally unreachable code paths
 
 ### Generation strategies (literature-backed)
 | Strategy | Style | Academic basis |
 |----------|-------|---------------|
-| `parse` | Raw fuzz bytes → parser APIs | PromptFuzz, FUDGE |
 | `api-chain` | Multi-API call sequences with state transitions | CKGFuzzer, Scheduzz |
 | `roundtrip` | Parse → modify → serialize → re-parse | MUTATO, OSS-Fuzz-Gen |
+| `targeted` | Coverage-feedback-guided generation targeting uncovered reachable lines | FuzzForge (ours) |
 
 ### LLM configuration
 Models and variant matrix defined in `llm_config.json`:
 ```json
 {
   "models": [{"name": "...", "api_url": "...", "api_key": "...", "max_tokens": 2048}],
-  "variant_matrix": {"strategies": ["parse", "api-chain", "roundtrip"], "temperatures": [0.4, 0.7, 0.9]}
+  "variant_matrix": {"strategies": ["api-chain", "roundtrip", "targeted"], "temperatures": [0.4, 0.7, 0.9]}
 }
 ```
 Fallback: `LLM_MODEL`, `LLM_API_KEY`, `LLM_API_URL` environment variables.

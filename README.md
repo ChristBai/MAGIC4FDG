@@ -50,11 +50,11 @@ Round 3: Refinement → Generation(temp=0.9, 6+1变体) → Patching → Coverag
 
 | 策略 | 风格 | 学术依据 | 典型覆盖率 |
 |------|------|----------|-----------|
-| `parse` | 原始 fuzz 字节直接喂给解析 API | PromptFuzz, FUDGE | ~40% |
 | `api-chain` | 多 API 组合调用链，覆盖状态转换 | CKGFuzzer, Scheduzz | ~60-72% |
 | `roundtrip` | 解析→修改→序列化→重解析 | MUTATO, OSS-Fuzz-Gen | ~50-65% |
+| `targeted` | 基于覆盖率反馈定向生成，针对可达但未覆盖的行 | FuzzForge (本项目) | ~65-80% |
 
-> 注：覆盖率数据基于 cJSON 库的实测结果，api-chain 策略表现最优。
+> 注：覆盖率数据基于 cJSON 库的实测结果。`targeted` 策略利用 LLVM CFG 可达性分析过滤不可达分支，仅引导 LLM 关注有效目标。
 
 ## 快速开始
 
@@ -74,7 +74,7 @@ pip install -e .
     {"name": "claude-sonnet-4-6", "api_url": "https://api.example.com/v1", "api_key": "sk-...", "max_tokens": 2048}
   ],
   "variant_matrix": {
-    "strategies": ["parse", "api-chain", "roundtrip"],
+    "strategies": ["api-chain", "roundtrip", "targeted"],
     "temperatures": [0.4, 0.7, 0.9]
   },
   "defaults": {
@@ -178,7 +178,7 @@ python3 -m pytest tests/ -v
 
 - Refinement 融合跨策略变体时可能产出"平庸折中"，覆盖率低于最佳单体
 - 温度对覆盖率的影响不如策略选择显著
-- 覆盖率反馈目前仅在 Refinement 阶段使用，Generation 阶段为盲生成
+- `targeted` 策略依赖前一轮覆盖率数据，首轮无反馈时回退为 api-chain 行为
 
 ## 许可
 

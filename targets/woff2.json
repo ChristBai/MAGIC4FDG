@@ -1,0 +1,14 @@
+{
+  "library_name": "woff2",
+  "header": "/opt/bench/woff2/include/woff2/decode.h",
+  "build_command": "benchmarks/libs/woff2/build.sh",
+  "static_libs": ["/opt/bench/woff2/lib/libwoff2dec.a", "/opt/bench/woff2/lib/libwoff2common.a", "/opt/bench/woff2/lib/libbrotlidec.a", "/opt/bench/woff2/lib/libbrotlicommon.a"],
+  "link_flags": ["-lstdc++"],
+  "include_dirs": ["/opt/bench/woff2/include", "/opt/bench/woff2/include/brotli"],
+  "source_files": [],
+  "coverage_sources": ["/opt/bench/woff2/src"],
+  "seed_corpus": "benchmarks/libs/woff2/seed_corpus",
+  "dictionary": "benchmarks/libs/woff2/woff2.dict",
+  "language": "C++",
+  "description": "WOFF2 font compression/decompression library"
+}

@@ -1,0 +1,14 @@
+{
+  "library_name": "re2",
+  "header": "/opt/bench/re2/include/re2/re2.h",
+  "build_command": "benchmarks/libs/re2/build.sh",
+  "static_libs": ["/opt/bench/re2/lib/libre2.a", "/opt/bench/re2/lib/libabsl_all.a"],
+  "link_flags": ["-lpthread", "-lstdc++"],
+  "include_dirs": ["/opt/bench/re2/include", "/opt/bench/abseil/include"],
+  "source_files": [],
+  "coverage_sources": ["/opt/bench/re2/src"],
+  "seed_corpus": "benchmarks/libs/re2/seed_corpus",
+  "dictionary": "benchmarks/libs/re2/re2.dict",
+  "language": "C++",
+  "description": "Fast regular expression engine by Google"
+}

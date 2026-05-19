@@ -1,7 +1,13 @@
 .DS_Store
+.git/
 build/
-generated/fuzz_driver
+generated/
 crash-*
 leak-*
 oom-*
 timeout-*
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.ruff_cache/
