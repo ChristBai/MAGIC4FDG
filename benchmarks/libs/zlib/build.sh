@@ -15,8 +15,8 @@ git_clone_retry() {
   exit 1
 }
 
-PREFIX=/opt/bench/libpcap
-SRC=/tmp/libpcap-src
+PREFIX=/opt/bench/zlib
+SRC=/tmp/zlib-src
 
 export CC=clang
 export CXX=clang++
@@ -25,25 +25,16 @@ export CXXFLAGS="$CFLAGS"
 export LDFLAGS="-fsanitize=address"
 
 rm -rf "$SRC"
-git_clone_retry --depth 1 --branch libpcap-1.10.4 https://github.com/the-tcpdump-group/libpcap.git "$SRC"
+git_clone_retry --depth 1 --branch v1.3.1 https://github.com/madler/zlib.git "$SRC"
 
 cd "$SRC"
-mkdir build && cd build
-cmake .. \
-  -DCMAKE_C_COMPILER=clang \
-  -DCMAKE_C_FLAGS="$CFLAGS" \
-  -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-  -DBUILD_SHARED_LIBS=OFF \
-  -DDISABLE_DBUS=ON \
-  -DDISABLE_RDMA=ON \
-  -DDISABLE_BLUETOOTH=ON \
-  -DDISABLE_USB=ON
+./configure --prefix="$PREFIX" --static
 make -j2
 make install
 
 # Copy source for coverage mapping
 mkdir -p "$PREFIX/src"
-cp "$SRC/"*.c "$SRC/"*.h "$PREFIX/src/" 2>/dev/null || true
+cp "$SRC/"*.c "$SRC/"*.h "$PREFIX/src/"
 
-echo "=== libpcap build complete ==="
-ls -la "$PREFIX/lib/libpcap.a"
+echo "=== zlib build complete ==="
+ls -la "$PREFIX/lib/libz.a"

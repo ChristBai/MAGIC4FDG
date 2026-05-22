@@ -5,6 +5,7 @@ git_clone_retry() {
   git config --global http.postBuffer 524288000
   git config --global http.lowSpeedLimit 1000
   git config --global http.lowSpeedTime 30
+  git config --global http.sslVerify false
   for i in 1 2 3; do
     git clone "$@" && return 0
     echo "[RETRY] git clone attempt $i failed, retrying in 3s..."

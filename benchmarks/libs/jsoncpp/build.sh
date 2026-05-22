@@ -15,8 +15,8 @@ git_clone_retry() {
   exit 1
 }
 
-PREFIX=/opt/bench/libpcap
-SRC=/tmp/libpcap-src
+PREFIX=/opt/bench/jsoncpp
+SRC=/tmp/jsoncpp-src
 
 export CC=clang
 export CXX=clang++
@@ -25,25 +25,27 @@ export CXXFLAGS="$CFLAGS"
 export LDFLAGS="-fsanitize=address"
 
 rm -rf "$SRC"
-git_clone_retry --depth 1 --branch libpcap-1.10.4 https://github.com/the-tcpdump-group/libpcap.git "$SRC"
+git_clone_retry --depth 1 --branch 1.9.6 https://github.com/open-source-parsers/jsoncpp.git "$SRC"
 
 cd "$SRC"
 mkdir build && cd build
 cmake .. \
   -DCMAKE_C_COMPILER=clang \
+  -DCMAKE_CXX_COMPILER=clang++ \
   -DCMAKE_C_FLAGS="$CFLAGS" \
+  -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DBUILD_SHARED_LIBS=OFF \
-  -DDISABLE_DBUS=ON \
-  -DDISABLE_RDMA=ON \
-  -DDISABLE_BLUETOOTH=ON \
-  -DDISABLE_USB=ON
+  -DJSONCPP_WITH_TESTS=OFF \
+  -DJSONCPP_WITH_POST_BUILD_UNITTEST=OFF \
+  -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 make -j2
 make install
 
 # Copy source for coverage mapping
 mkdir -p "$PREFIX/src"
-cp "$SRC/"*.c "$SRC/"*.h "$PREFIX/src/" 2>/dev/null || true
+cp "$SRC/src/lib_json/"*.cpp "$PREFIX/src/"
+cp "$SRC/include/json/"*.h "$PREFIX/src/" 2>/dev/null || true
 
-echo "=== libpcap build complete ==="
-ls -la "$PREFIX/lib/libpcap.a"
+echo "=== jsoncpp build complete ==="
+ls -la "$PREFIX/lib/libjsoncpp.a" 2>/dev/null || ls -la "$PREFIX/lib64/libjsoncpp.a" 2>/dev/null || ls "$PREFIX/lib/"

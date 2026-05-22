@@ -94,11 +94,12 @@ Single model in `llm_config.json`:
 Fallback: `LLM_MODEL`, `LLM_API_KEY`, `LLM_API_URL` environment variables.
 
 ### Target Config Format
-JSON files in `targets/`. Two modes:
-- **With `build_command`**: paths use Docker-internal `/opt/bench/...` (library built in container, cached to host)
-- **Without `build_command`**: paths relative to project root (source compiled directly)
+JSON files in `targets/`. All libraries use unified `build_command` mode — Docker container downloads, builds, and installs to `/opt/bench/<lib>/`.
 
-Fields: `library_name`, `header`, `source_files`, `include_dirs`, `seed_corpus`, `language`, `description`, `build_command` (optional), `static_libs` (optional), `link_flags` (optional), `coverage_sources` (optional), `dictionary` (optional).
+Required fields: `library_name`, `header`, `build_command`, `static_libs`, `include_dirs`, `language`, `description`.
+Optional fields: `source_files` (usually empty), `coverage_sources`, `seed_corpus`, `dictionary`, `link_flags`.
+
+Path convention: `header`/`include_dirs`/`static_libs`/`coverage_sources` use Docker-internal paths (`/opt/bench/...`). `seed_corpus`/`dictionary`/`build_command` use project-relative paths (accessed via `/workspace` mount).
 
 ### Output
 ```
@@ -160,6 +161,7 @@ targets/               # Target library configs
 - Dependencies: langgraph, langchain-core, langchain-openai, PyYAML
 - Coverage: `-fprofile-instr-generate -fcoverage-mapping` with ASan
 - Proxy: requires `LANGCHAIN_OPENAI_TCP_KEEPALIVE=0` (set in `__main__.py`)
+- Docker proxy: `DOCKER_PROXY` env var (default `http://host.docker.internal:7897`) passed to containers for git clone
 - Progress output: all agents print status with `flush=True` for real-time monitoring
 - Use `PYTHONUNBUFFERED=1` when running pipeline to see output in real-time
 

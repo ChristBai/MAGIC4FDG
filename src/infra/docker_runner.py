@@ -49,6 +49,12 @@ def _docker_run(
         "-v", f"{ROOT}:/workspace",
         "-w", "/workspace",
     ]
+    proxy = os.environ.get("DOCKER_PROXY", "http://host.docker.internal:7897")
+    if proxy:
+        docker_cmd += [
+            "-e", f"http_proxy={proxy}",
+            "-e", f"https_proxy={proxy}",
+        ]
     for vol in (extra_volumes or []):
         docker_cmd += ["-v", vol]
     docker_cmd.append(DOCKER_IMAGE)

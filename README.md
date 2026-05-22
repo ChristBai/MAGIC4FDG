@@ -117,15 +117,17 @@ generated/checkpoints/cjson/round_N.json  # 断点恢复用
 
 ## Target 配置格式
 
-两种模式：
+所有库统一使用 `build_command` 模式：在 Docker 容器内下载源码、编译、安装到 `/opt/bench/<lib>/`。
 
-**无 build_command（源码直接编译）：**
 ```json
 {
   "library_name": "cjson",
-  "header": "benchmarks/libs/cjson/src/cJSON.h",
-  "source_files": ["benchmarks/libs/cjson/src/cJSON.c"],
-  "include_dirs": ["benchmarks/libs/cjson/src"],
+  "header": "/opt/bench/cjson/include/cjson/cJSON.h",
+  "build_command": "benchmarks/libs/cjson/build.sh",
+  "static_libs": ["/opt/bench/cjson/lib/libcjson.a"],
+  "include_dirs": ["/opt/bench/cjson/include/cjson"],
+  "source_files": [],
+  "coverage_sources": ["/opt/bench/cjson/src"],
   "seed_corpus": "benchmarks/libs/cjson/seed_corpus",
   "dictionary": "benchmarks/libs/cjson/json.dict",
   "language": "C",
@@ -133,23 +135,11 @@ generated/checkpoints/cjson/round_N.json  # 断点恢复用
 }
 ```
 
-**有 build_command（Docker 内构建）：**
-```json
-{
-  "library_name": "libpng",
-  "header": "/opt/bench/libpng/include/libpng16/png.h",
-  "build_command": "benchmarks/libs/libpng/build.sh",
-  "static_libs": ["/opt/bench/libpng/lib/libpng16.a"],
-  "link_flags": ["-lm"],
-  "include_dirs": ["/opt/bench/libpng/include/libpng16"],
-  "coverage_sources": ["/opt/bench/libpng/src"],
-  "seed_corpus": "benchmarks/libs/libpng/seed_corpus",
-  "language": "C",
-  "description": "PNG reference library"
-}
-```
-
-路径规则：有 `build_command` 的库使用 Docker 内路径（`/opt/bench/...`），无 `build_command` 的库使用相对于项目根的路径。
+字段说明：
+- `build_command`：Docker 内执行的构建脚本（下载源码 + 编译 + 安装到 /opt/bench/）
+- `header`/`include_dirs`/`static_libs`：Docker 内路径（`/opt/bench/...`）
+- `coverage_sources`：覆盖率统计的源码目录
+- `seed_corpus`/`dictionary`：相对于项目根的路径（通过 /workspace 挂载访问）
 ```
 
 ## 项目结构
