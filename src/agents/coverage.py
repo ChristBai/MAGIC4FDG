@@ -353,6 +353,7 @@ def coverage_node(state: PipelineState) -> dict:
     for slot in slots:
         slot_variants = [v for v in covered_variants if v.get("slot_id") == slot["slot_id"] and v["compile_status"] == "ok"]
         if not slot_variants:
+            slot["plateau_count"] = slot.get("plateau_count", 0) + 1
             continue
         best_v = max(slot_variants, key=lambda v: v["coverage_pct"])
         cov = best_v["coverage_pct"]
