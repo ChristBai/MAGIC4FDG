@@ -1,0 +1,37 @@
+# HarfBuzz fuzzing dictionary
+# OpenType/TrueType table tags
+"GDEF"
+"GPOS"
+"GSUB"
+"cmap"
+"head"
+"hhea"
+"hmtx"
+"kern"
+"maxp"
+"name"
+"post"
+"OS/2"
+"loca"
+"glyf"
+"CFF "
+"CFF2"
+"COLR"
+"CPAL"
+"CBDT"
+"CBLC"
+"sbix"
+"SVG "
+"MATH"
+"BASE"
+"JSTF"
+"feat"
+"morx"
+# TrueType signature
+"\x00\x01\x00\x00"
+# OpenType signature
+"OTTO"
+# WOFF signature
+"wOFF"
+# WOFF2 signature
+"wOF2"

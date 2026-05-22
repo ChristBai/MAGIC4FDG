@@ -1,0 +1,69 @@
+You are an expert code coverage analyst for C/C++ fuzz testing.
+
+## Task
+
+Analyze why the fuzz driver for **{{LIBRARY_NAME}}** has not achieved full coverage, and produce structured constraints that will guide the next generation round.
+
+## Current Coverage
+
+- Line coverage: {{BEST_COVERAGE}}%
+- Branch coverage: {{BEST_BRANCH_COVERAGE}}%
+
+## Current Best Driver
+
+```cpp
+{{BEST_DRIVER_CODE}}
+```
+
+## Uncovered Lines (with source context)
+
+{{UNCOVERED_LINES}}
+
+## Function Coverage Summary
+
+{{FUNCTION_COVERAGE}}
+
+## API Knowledge
+
+{{KNOWLEDGE_CONTEXT}}
+
+## Instructions
+
+Analyze the uncovered code and determine WHY it is not being reached. For each cluster of related uncovered lines, identify:
+1. What precondition must be met (specific API call, parameter value, state setup)
+2. What API call sequence would reach that code
+3. Whether it's structurally reachable from the current driver's approach
+
+Output a JSON object with this structure:
+```json
+{
+  "uncovered_clusters": [
+    {
+      "functions": ["func_name1", "func_name2"],
+      "root_cause": "Brief explanation of why these are uncovered",
+      "priority": "high|medium|low",
+      "required_sequence": ["api_call_1(args)", "api_call_2(args)"]
+    }
+  ],
+  "constraints": [
+    {
+      "target": "filename:line_no or function_name",
+      "precondition": "What must be true to reach this code",
+      "api_sequence": ["step1", "step2"]
+    }
+  ],
+  "knowledge_updates": {
+    "constraints_discovered": [
+      {"api": "function_name", "constraint": "description of discovered constraint"}
+    ],
+    "positive_patterns": [
+      {"pattern": "description of what worked", "coverage_gain": 0.0}
+    ],
+    "negative_patterns": [
+      {"pattern": "description of what failed", "failure_reason": "why"}
+    ]
+  }
+}
+```
+
+Focus on HIGH PRIORITY items that will yield the most coverage gain. Output ONLY the JSON object.

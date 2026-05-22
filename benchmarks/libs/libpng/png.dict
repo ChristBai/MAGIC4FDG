@@ -1,0 +1,28 @@
+# PNG fuzzing dictionary
+# PNG signature
+"\x89PNG\x0d\x0a\x1a\x0a"
+# Critical chunks
+"IHDR"
+"PLTE"
+"IDAT"
+"IEND"
+# Ancillary chunks
+"bKGD"
+"cHRM"
+"gAMA"
+"hIST"
+"iCCP"
+"iTXt"
+"pHYs"
+"sBIT"
+"sPLT"
+"sRGB"
+"tEXt"
+"tIME"
+"tRNS"
+"zTXt"
+"eXIf"
+# APNG chunks
+"acTL"
+"fcTL"
+"fdAT"

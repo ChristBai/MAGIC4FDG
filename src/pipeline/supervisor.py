@@ -1,8 +1,18 @@
-"""Supervisor: CLI entry point for the multi-agent fuzz driver pipeline.
+"""Supervisor：FuzzForge v2 流水线的 CLI 入口和顶层编排。
 
-Orchestrates the full pipeline: loads target config, initializes state with
-temperature schedule, invokes the LangGraph, and saves results (best driver,
-all variants, markdown/JSON reports) to generated/iterations/<library>/<timestamp>/.
+职责：
+1. 解析命令行参数，加载目标库配置
+2. 初始化 PipelineState（或从 checkpoint 恢复）
+3. 调用 LangGraph 编译后的图执行完整流水线
+4. 执行结束后保存结果（best_driver、variants、report）
+5. 清理临时文件，输出摘要
+
+使用方式：
+  PYTHONUNBUFFERED=1 python3 -m src.pipeline.supervisor \
+    --target-config targets/cjson.json \
+    --max-rounds 5 --target-coverage 100 --fuzz-seconds 60
+
+支持 --resume 从最近的 checkpoint 恢复（适用于超时/崩溃后继续）。
 """
 
 from __future__ import annotations
@@ -12,41 +22,73 @@ import sys
 from pathlib import Path
 
 from src.config import ROOT, load_target_config
-from src.pipeline.graph import compile_graph
-from src.agents.generation import get_temperature_schedule
 from src.infra.token_tracker import get_tracker
+from src.pipeline.checkpoint import load_latest_checkpoint
+from src.pipeline.graph import compile_graph
 from src.pipeline.report import save_report
 
 
 def run_pipeline(
     target_config_path: str,
-    max_iterations: int = 3,
-    target_coverage: float = 70.0,
-    fuzz_seconds: int = 15,
+    max_rounds: int = 10,
+    target_coverage: float = 100.0,
+    fuzz_seconds: int = 60,
     max_compile_retries: int = 3,
+    resume: bool = False,
 ) -> dict:
-    """Run the full multi-agent pipeline and return the final state."""
-    config = load_target_config(Path(target_config_path))
-    temp_schedule = get_temperature_schedule()
+    """执行完整的多 agent 流水线，返回最终状态。
 
+    流程：加载配置 → 初始化/恢复状态 → graph.invoke → 保存结果。
+    """
+    config = load_target_config(Path(target_config_path))
+    lib_name = config.get("library_name", "unknown")
+
+    # 从 checkpoint 恢复（适用于超时/崩溃后继续）
+    # checkpoint 保存在 analyst 之前（round 尚未递增），恢复时需要 +1
+    # 使 planner 进入 exploit 模式而非重新 explore
+    if resume:
+        checkpoint = load_latest_checkpoint(lib_name)
+        if checkpoint:
+            print(f"[Supervisor] Resuming from checkpoint (round {checkpoint.get('round', 0)})", flush=True)
+            checkpoint["round"] = checkpoint.get("round", 0) + 1
+            graph = compile_graph()
+            get_tracker().reset()
+            final_state = graph.invoke(checkpoint)
+            final_state["token_usage"] = get_tracker().summary()
+            _save_results(final_state, config)
+            return final_state
+
+    # 全新执行：构造初始状态
     initial_state = {
         "target_config": config,
         "target_config_path": target_config_path,
-        "research_summary": "",
-        "source_code_context": "",
-        "reachable_branches": [],
-        "variant_matrix": [],
+        "knowledge": {
+            "api_entries": [],
+            "call_graph": {},
+            "type_definitions": [],
+            "macro_constants": [],
+            "slot_knowledge": {},
+        },
+        "strategy_selections": [],
+        "harness_slots": [],
         "variants": [],
-        "iteration": 0,
-        "max_iterations": max_iterations,
+        "all_variants": [],
+        "round": 0,
+        "max_rounds": max_rounds,
         "max_compile_retries": max_compile_retries,
         "target_coverage": target_coverage,
         "best_coverage": 0.0,
         "best_driver": "",
-        "coverage_feedback": "",
-        "temperature_schedule": temp_schedule,
-        "current_temp_idx": 0,
+        "best_drivers": {},
+        "coverage_plateau_count": 0,
+        "union_line_covered": 0,
+        "union_line_total": 0,
+        "union_branch_covered": 0,
+        "union_branch_total": 0,
+        "coverage_analysis": {},
+        "slot_coverage_analyses": {},
         "fuzz_seconds": fuzz_seconds,
+        "checkpoint_dir": str(ROOT / "generated" / "checkpoints" / lib_name),
         "final_report": {},
         "messages": [],
     }
@@ -61,7 +103,16 @@ def run_pipeline(
 
 
 def _save_results(state: dict, config: dict) -> None:
-    """Save pipeline results to the output directory."""
+    """保存流水线结果到输出目录。
+
+    输出结构：
+      generated/iterations/<library>/<timestamp>/
+        ├── best_driver.cpp      # 历史最佳 fuzz driver
+        ├── variants/            # 最后一轮所有变体源码
+        ├── report.md            # Markdown 报告
+        └── report.json          # 结构化报告
+      generated/iterations/<library>/latest → <timestamp>  (符号链接)
+    """
     from datetime import datetime
 
     target_name = config.get("library_name", "unknown")
@@ -73,6 +124,14 @@ def _save_results(state: dict, config: dict) -> None:
         driver_path = out_dir / "best_driver.cpp"
         driver_path.write_text(state["best_driver"], encoding="utf-8")
 
+    # 输出每个 slot 的 best driver，组成完整 driver 集合
+    best_drivers = state.get("best_drivers", {})
+    if best_drivers:
+        drivers_dir = out_dir / "best_drivers"
+        drivers_dir.mkdir(exist_ok=True)
+        for slot_id, source in best_drivers.items():
+            (drivers_dir / f"{slot_id}.cpp").write_text(source, encoding="utf-8")
+
     variants_dir = out_dir / "variants"
     variants_dir.mkdir(exist_ok=True)
     for v in state.get("variants", []):
@@ -80,7 +139,7 @@ def _save_results(state: dict, config: dict) -> None:
             vpath = variants_dir / f"{v['id']}.cpp"
             vpath.write_text(v["source_code"], encoding="utf-8")
 
-    report_path = save_report(state, out_dir)
+    save_report(state, out_dir)
 
     latest_link = out_dir.parent / "latest"
     if latest_link.is_symlink() or latest_link.exists():
@@ -91,11 +150,16 @@ def _save_results(state: dict, config: dict) -> None:
 
     print(f"\n{'='*60}")
     print(f"Pipeline complete: {target_name}")
-    print(f"  Iterations: {state.get('iteration', 0)}")
+    print(f"  Rounds: {state.get('round', 0)}")
     print(f"  Best coverage: {state.get('best_coverage', 0.0):.1f}%")
-    print(f"  Target: {state.get('target_coverage', 70.0):.1f}%")
-    compiled = sum(1 for v in state.get("variants", []) if v["compile_status"] == "ok")
-    print(f"  Variants compiled: {compiled}/{len(state.get('variants', []))}")
+    print(f"  Target: {state.get('target_coverage', 100.0):.1f}%")
+    all_v = state.get("all_variants", []) or state.get("variants", [])
+    compiled = sum(1 for v in all_v if v["compile_status"] == "ok")
+    print(f"  Variants compiled: {compiled}/{len(all_v)} (all rounds)")
+    union_lc = state.get("union_line_covered", 0)
+    union_lt = state.get("union_line_total", 0)
+    if union_lt:
+        print(f"  Union lines: {union_lc}/{union_lt}")
     token_usage = state.get("token_usage", {})
     if token_usage.get("total_tokens"):
         print(f"  Tokens used: {token_usage['total_tokens']:,} (prompt: {token_usage['total_prompt_tokens']:,}, completion: {token_usage['total_completion_tokens']:,})")
@@ -104,7 +168,7 @@ def _save_results(state: dict, config: dict) -> None:
 
 
 def _cleanup_temp_files() -> None:
-    """Remove intermediate files from generated/ directory."""
+    """清理 generated/ 目录下的中间临时文件。"""
     gen_dir = ROOT / "generated"
     for pattern in ["patch_*.cpp", "cov_*.cpp", "compile_test.sh",
                     "run_coverage.sh", "reachability_analysis.sh", "coverage_*.json"]:
@@ -113,41 +177,47 @@ def _cleanup_temp_files() -> None:
 
 
 def main() -> None:
+    """CLI 入口：解析参数并启动流水线。"""
     parser = argparse.ArgumentParser(
-        description="Multi-agent fuzz driver generation pipeline"
+        description="FuzzForge v2: multi-agent fuzz driver generation pipeline"
     )
     parser.add_argument(
         "--target-config", required=True,
         help="Path to target config JSON file",
     )
     parser.add_argument(
-        "--max-iterations", type=int, default=10,
-        help="Max iterations cap, overrides temperature schedule length (default: 10)",
+        "--max-rounds", type=int, default=10,
+        help="Maximum rounds (default: 10)",
     )
     parser.add_argument(
-        "--target-coverage", type=float, default=70.0,
-        help="Target line coverage percentage (default: 70.0)",
+        "--target-coverage", type=float, default=100.0,
+        help="Target line coverage percentage (default: 100.0)",
     )
     parser.add_argument(
-        "--fuzz-seconds", type=int, default=15,
-        help="Seconds to fuzz each variant (default: 15)",
+        "--fuzz-seconds", type=int, default=60,
+        help="Seconds to fuzz each variant (default: 60)",
     )
     parser.add_argument(
         "--max-compile-retries", type=int, default=3,
         help="Max compilation fix attempts per variant (default: 3)",
+    )
+    parser.add_argument(
+        "--resume", action="store_true",
+        help="Resume from latest checkpoint if available",
     )
 
     args = parser.parse_args()
 
     final_state = run_pipeline(
         target_config_path=args.target_config,
-        max_iterations=args.max_iterations,
+        max_rounds=args.max_rounds,
         target_coverage=args.target_coverage,
         fuzz_seconds=args.fuzz_seconds,
         max_compile_retries=args.max_compile_retries,
+        resume=args.resume,
     )
 
-    reached = final_state.get("best_coverage", 0.0) >= final_state.get("target_coverage", 70.0)
+    reached = final_state.get("best_coverage", 0.0) >= final_state.get("target_coverage", 100.0)
     sys.exit(0 if reached else 1)
 
 

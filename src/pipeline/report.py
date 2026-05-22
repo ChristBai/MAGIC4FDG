@@ -1,9 +1,9 @@
-"""Report generator: produces Markdown and JSON reports from pipeline state.
+"""报告生成：从 pipeline 最终状态生成 Markdown 和 JSON 报告。
 
-Generates two output files per run:
-- report.md: Human-readable summary with variant table, coverage stats,
-  uncovered lines analysis, token usage breakdown, and execution log.
-- report.json: Machine-readable metrics for programmatic analysis.
+每次运行产出两个文件：
+- report.md：人类可读的摘要，包含变体对比表、覆盖率统计、
+  未覆盖行分析、token 用量明细、执行日志
+- report.json：机器可读的结构化指标，供自动化分析使用
 """
 
 from __future__ import annotations
@@ -15,8 +15,18 @@ from pathlib import Path
 from src.config import ROOT
 
 
+def _calc_union_branch(state: dict) -> str:
+    """格式化 union 分支覆盖率显示。"""
+    variants = state.get("variants", [])
+    compiled = [v for v in variants if v.get("compile_status") == "ok"]
+    if not compiled:
+        return "N/A"
+    best_branch = max(v.get("branch_coverage_pct", 0.0) for v in compiled)
+    return f"{best_branch:.1f}% (best single variant)"
+
+
 def generate_report(state: dict) -> str:
-    """Generate a Markdown report from the final pipeline state."""
+    """从最终 pipeline 状态生成 Markdown 报告。"""
     target_config = state.get("target_config", {})
     library_name = target_config.get("library_name", "unknown")
 
@@ -31,13 +41,14 @@ def generate_report(state: dict) -> str:
         "",
         f"| Metric | Value |",
         f"|--------|-------|",
-        f"| Iterations | {state.get('iteration', 0)} |",
-        f"| Target coverage | {state.get('target_coverage', 70.0):.1f}% |",
-        f"| Best coverage achieved | {state.get('best_coverage', 0.0):.1f}% |",
+        f"| Rounds | {state.get('round', 0)} |",
+        f"| Target coverage | {state.get('target_coverage', 100.0):.1f}% |",
+        f"| **Union line coverage** | **{state.get('best_coverage', 0.0):.1f}%** ({state.get('union_line_covered', 0)}/{state.get('union_line_total', 0)} lines) |",
+        f"| Union branch coverage | {_calc_union_branch(state)} |",
         f"| Fuzz seconds per variant | {state.get('fuzz_seconds', 15)} |",
     ]
 
-    variants = state.get("variants", [])
+    variants = state.get("all_variants", []) or state.get("variants", [])
     compiled = [v for v in variants if v.get("compile_status") == "ok"]
     failed = [v for v in variants if v.get("compile_status") == "failed"]
 
@@ -48,7 +59,7 @@ def generate_report(state: dict) -> str:
         "",
     ])
 
-    reached = state.get("best_coverage", 0) >= state.get("target_coverage", 70.0)
+    reached = state.get("best_coverage", 0) >= state.get("target_coverage", 100.0)
     lines.append(f"**Result**: {'Target coverage REACHED' if reached else 'Target coverage NOT reached'}")
     lines.append("")
 
@@ -61,7 +72,7 @@ def generate_report(state: dict) -> str:
 
 
 def _variant_table(variants: list[dict]) -> list[str]:
-    """Generate the variant comparison table."""
+    """生成变体对比表（按覆盖率降序排列）。"""
     if not variants:
         return ["## Variants", "", "No variants generated.", ""]
 
@@ -91,7 +102,7 @@ def _variant_table(variants: list[dict]) -> list[str]:
 
 
 def _coverage_details(compiled_variants: list[dict]) -> list[str]:
-    """Generate coverage details for compiled variants."""
+    """生成编译成功变体的覆盖率详情（top 3）。"""
     if not compiled_variants:
         return []
 
@@ -114,7 +125,7 @@ def _coverage_details(compiled_variants: list[dict]) -> list[str]:
 
 
 def _token_usage(token_data: dict) -> list[str]:
-    """Format token usage statistics."""
+    """格式化 token 用量统计（总量 + 按 agent 分解）。"""
     if not token_data or not token_data.get("total_tokens"):
         return []
 
@@ -147,7 +158,7 @@ def _token_usage(token_data: dict) -> list[str]:
 
 
 def _execution_log(messages: list[str]) -> list[str]:
-    """Format the execution log."""
+    """格式化执行日志（最多展示最近 50 条）。"""
     if not messages:
         return []
 
@@ -162,7 +173,7 @@ def _execution_log(messages: list[str]) -> list[str]:
 
 
 def save_report(state: dict, out_dir: Path | None = None) -> Path:
-    """Generate and save the report to the output directory."""
+    """生成并保存报告（.md + .json），返回 report.md 路径。"""
     library_name = state.get("target_config", {}).get("library_name", "unknown")
     if out_dir is None:
         out_dir = ROOT / "generated" / "iterations" / library_name
@@ -175,10 +186,19 @@ def save_report(state: dict, out_dir: Path | None = None) -> Path:
     report_json = {
         "library_name": library_name,
         "description": state.get("target_config", {}).get("description", ""),
-        "iterations": state.get("iteration", 0),
+        "rounds": state.get("round", 0),
         "best_coverage": state.get("best_coverage", 0.0),
-        "target_coverage": state.get("target_coverage", 70.0),
-        "target_reached": state.get("best_coverage", 0) >= state.get("target_coverage", 70.0),
+        "target_coverage": state.get("target_coverage", 100.0),
+        "target_reached": state.get("best_coverage", 0) >= state.get("target_coverage", 100.0),
+        "union_coverage": {
+            "line_covered": state.get("union_line_covered", 0),
+            "line_total": state.get("union_line_total", 0),
+            "line_pct": state.get("best_coverage", 0.0),
+            "branch_pct": max(
+                (v.get("branch_coverage_pct", 0.0) for v in (state.get("all_variants", []) or state.get("variants", [])) if v.get("compile_status") == "ok"),
+                default=0.0,
+            ),
+        },
         "variants": [
             {
                 "id": v.get("id", ""),
@@ -190,7 +210,7 @@ def save_report(state: dict, out_dir: Path | None = None) -> Path:
                 "branch_coverage_pct": v.get("branch_coverage_pct", 0.0),
                 "patch_attempts": v.get("patch_attempts", 0),
             }
-            for v in state.get("variants", [])
+            for v in (state.get("all_variants", []) or state.get("variants", []))
         ],
         "token_usage": state.get("token_usage", {}),
     }

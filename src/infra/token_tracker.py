@@ -1,8 +1,7 @@
-"""Token usage tracking for LLM calls across the pipeline.
+"""Token 用量追踪：记录 pipeline 中所有 LLM 调用的 token 消耗。
 
-Provides a global TokenTracker that accumulates prompt/completion token counts
-per agent and per model. Used by all agents via get_tracker().record() and
-reported in the final pipeline output and report.md.
+提供全局 TokenTracker，按 agent 和 model 累计 prompt/completion token 数。
+所有 agent 通过 get_tracker().record() 记录，最终输出到 report。
 """
 
 from __future__ import annotations
@@ -11,7 +10,7 @@ import threading
 
 
 class TokenTracker:
-    """Thread-safe token usage accumulator."""
+    """线程安全的 token 用量累加器。"""
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
@@ -59,7 +58,7 @@ def get_tracker() -> TokenTracker:
 
 
 def extract_token_usage(response) -> tuple[int, int]:
-    """Extract prompt/completion tokens from a langchain AIMessage response."""
+    """从 langchain AIMessage 响应中提取 prompt/completion token 数。"""
     meta = getattr(response, "response_metadata", {}) or {}
     usage = meta.get("token_usage") or meta.get("usage") or {}
     prompt = usage.get("prompt_tokens", 0)

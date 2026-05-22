@@ -1,0 +1,19 @@
+{
+  "name": "FuzzForge",
+  "version": 1,
+  "enabled": true,
+  "tags": ["fuzzing", "coverage", "llm"],
+  "config": {
+    "max_iterations": 10,
+    "target_coverage": 70.0,
+    "strategies": ["parse", "api-chain", "roundtrip"]
+  },
+  "data": [1, 2, 3, null, "hello\nworld", "A"],
+  "empty_object": {},
+  "empty_array": [],
+  "nested": {"a": {"b": {"c": 42}}},
+  "special_chars": "tab\there\nand\\backslash\"quote",
+  "big_number": 9999999999999999,
+  "float": 3.14159e+10,
+  "negative": -273.15
+}

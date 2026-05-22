@@ -1,13 +1,18 @@
-"""Patching Agent: fixes compilation errors in generated fuzz drivers.
+"""Patching Agent：修复生成的 fuzz driver 中的编译错误。
 
-For each variant with compile_status="pending", attempts Docker compilation.
-If compilation fails, sends the source code + error messages to an LLM for
-repair, retrying up to max_compile_retries times. Successfully compiled
-variants get compile_status="ok" and proceed to coverage measurement.
+对每个 compile_status="pending" 的变体：
+1. 在 Docker 中尝试编译
+2. 编译成功 → 标记 "ok"，进入 coverage 阶段
+3. 编译失败 → 将源码 + 错误信息发给 LLM 修复，最多重试 max_compile_retries 次
+4. 重试耗尽仍失败 → 标记 "failed"
+
+LLM 温度设为 0.2（修复任务需要确定性，不需要创造性）。
 """
 
 from __future__ import annotations
 
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -24,7 +29,7 @@ PATCH_TEMPLATE = (Path(__file__).resolve().parents[2] / "prompts" / "patching_pr
 
 
 def _render_patch_prompt(target_config: dict, driver_code: str, compile_errors: str) -> str:
-    """Render the patching prompt with error context."""
+    """渲染修复 prompt：将编译错误和源码填入模板。"""
     include_dirs = target_config.get("include_dirs", [])
     return (
         PATCH_TEMPLATE.replace("{{LIBRARY_NAME}}", target_config.get("library_name", ""))
@@ -39,7 +44,7 @@ def _render_patch_prompt(target_config: dict, driver_code: str, compile_errors: 
 
 
 def _try_compile(variant: DriverVariant, target_config: dict) -> tuple[bool, str]:
-    """Attempt to compile a variant. Returns (success, errors)."""
+    """尝试编译变体，返回 (是否成功, 错误信息)。"""
     driver_filename = f"patch_{variant['id']}.cpp"
     return compile_driver(variant["source_code"], target_config, driver_filename)
 
@@ -50,7 +55,7 @@ def _patch_single_variant(
     max_retries: int,
     messages: list[str],
 ) -> DriverVariant:
-    """Attempt to compile and patch a single variant."""
+    """对单个变体执行编译→修复循环。"""
     if not variant["source_code"]:
         variant["compile_status"] = "failed"
         variant["compile_errors"] = "Empty source code"
@@ -103,25 +108,38 @@ def _patch_single_variant(
 
 
 def patching_node(state: PipelineState) -> dict:
-    """LangGraph node: attempt to compile each variant, fix errors if needed."""
+    """LangGraph 节点：并行编译所有 pending 变体，失败则调用 LLM 修复。"""
     target_config = state["target_config"]
     variants = list(state.get("variants", []))
     max_retries = state.get("max_compile_retries", 3)
     messages = list(state.get("messages", []))
 
     pending = [v for v in variants if v["compile_status"] == "pending"]
+    non_pending = [v for v in variants if v["compile_status"] != "pending"]
     print(f"[Patching] {len(pending)} pending variants to compile", flush=True)
 
-    patched_variants: list[DriverVariant] = []
+    max_workers = int(os.environ.get("FUZZFORGE_DOCKER_PARALLEL", os.environ.get("FUZZFORGE_PARALLEL", "5")))
 
-    for variant in variants:
-        if variant["compile_status"] != "pending":
-            patched_variants.append(variant)
-            continue
+    if not pending:
+        compiled_count = sum(1 for v in non_pending if v["compile_status"] == "ok")
+        messages.append(f"[Patching] {compiled_count}/{len(non_pending)} variants compiled successfully")
+        return {"variants": non_pending, "messages": messages}
 
-        print(f"[Patching]   {variant['id']}...", flush=True)
-        patched = _patch_single_variant(variant, target_config, max_retries, messages)
-        patched_variants.append(patched)
+    def _patch_one(variant):
+        local_msgs: list[str] = []
+        patched = _patch_single_variant(variant, target_config, max_retries, local_msgs)
+        return patched, local_msgs
+
+    patched_variants: list[DriverVariant] = list(non_pending)
+
+    with ThreadPoolExecutor(max_workers=min(len(pending), max_workers)) as pool:
+        futures = {pool.submit(_patch_one, v): v for v in pending}
+        for future in as_completed(futures):
+            patched, local_msgs = future.result()
+            patched_variants.append(patched)
+            messages.extend(local_msgs)
+            status = "OK" if patched["compile_status"] == "ok" else "FAILED"
+            print(f"[Patching]   {patched['id']} → {status}", flush=True)
 
     compiled_count = sum(1 for v in patched_variants if v["compile_status"] == "ok")
     messages.append(f"[Patching] {compiled_count}/{len(patched_variants)} variants compiled successfully")

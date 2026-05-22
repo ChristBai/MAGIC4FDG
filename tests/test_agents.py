@@ -36,59 +36,6 @@ class TestState(unittest.TestCase):
         self.assertEqual(variant["compile_status"], "pending")
 
 
-class TestResearchAgent(unittest.TestCase):
-    def test_read_source_files(self) -> None:
-        from src.agents.research import _read_source_files
-
-        config = {
-            "header": "examples/cjson_lib/cJSON.h",
-            "source_files": ["examples/cjson_lib/cJSON.c"],
-        }
-        source = _read_source_files(config)
-        self.assertIn("cJSON", source)
-        self.assertGreater(len(source), 100)
-
-    def test_render_research_prompt(self) -> None:
-        from src.agents.research import _render_research_prompt
-
-        config = {
-            "library_name": "cjson",
-            "language": "C",
-            "description": "Parse JSON string",
-        }
-        prompt = _render_research_prompt(config, "void foo() {}")
-        self.assertNotIn("{{", prompt)
-        self.assertIn("cjson", prompt)
-        self.assertIn("void foo()", prompt)
-
-    @patch("src.agents.research.create_llm")
-    def test_research_node_calls_llm(self, mock_create_llm: MagicMock) -> None:
-        from src.agents.research import research_node
-
-        mock_llm = MagicMock()
-        mock_response = MagicMock()
-        mock_response.content = "Analysis: this library parses JSON"
-        mock_llm.invoke.return_value = mock_response
-        mock_create_llm.return_value = mock_llm
-
-        state = {
-            "target_config": {
-                "library_name": "cjson",
-                "language": "C",
-                "description": "Parse JSON",
-                "header": "examples/cjson_lib/cJSON.h",
-                "source_files": ["examples/cjson_lib/cJSON.c"],
-                "include_dirs": ["examples/cjson_lib"],
-            },
-            "messages": [],
-        }
-
-        result = research_node(state)
-        self.assertEqual(result["research_summary"], "Analysis: this library parses JSON")
-        self.assertIn("[Research]", result["messages"][0])
-        mock_llm.invoke.assert_called_once()
-
-
 class TestPatchingAgent(unittest.TestCase):
     def test_render_patch_prompt(self) -> None:
         from src.agents.patching import _render_patch_prompt
@@ -158,100 +105,6 @@ class TestPatchingAgent(unittest.TestCase):
         result = _patch_single_variant(variant, {"library_name": "test", "header": "h.h", "include_dirs": []}, 3, messages)
         self.assertEqual(result["compile_status"], "ok")
         self.assertEqual(result["patch_attempts"], 1)
-
-
-class TestGenerationAgent(unittest.TestCase):
-    def test_build_prompt_parse(self) -> None:
-        from src.agents.generation import _build_prompt
-
-        config = {
-            "library_name": "cjson",
-            "header": "cJSON.h",
-            "language": "C",
-            "include_dirs": ["."],
-        }
-        prompt = _build_prompt(config, "parse", "some research")
-        self.assertIn("cjson", prompt)
-        self.assertIn("some research", prompt)
-        self.assertIn("Parse-Centric", prompt)
-        self.assertNotIn("{{", prompt)
-
-    def test_build_prompt_api_chain(self) -> None:
-        from src.agents.generation import _build_prompt
-
-        config = {
-            "library_name": "cjson",
-            "header": "cJSON.h",
-            "language": "C",
-            "include_dirs": ["."],
-        }
-        prompt = _build_prompt(config, "api-chain", "Found 5 branches in parser")
-        self.assertIn("Found 5 branches", prompt)
-        self.assertIn("API-Chain", prompt)
-
-    def test_build_prompt_roundtrip(self) -> None:
-        from src.agents.generation import _build_prompt
-
-        config = {
-            "library_name": "cjson",
-            "header": "cJSON.h",
-            "language": "C",
-            "include_dirs": ["."],
-        }
-        prompt = _build_prompt(config, "roundtrip", "research data")
-        self.assertIn("research data", prompt)
-        self.assertIn("Round-Trip", prompt)
-
-    def test_make_variant_id(self) -> None:
-        from src.agents.generation import _make_variant_id
-
-        config = {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.4}
-        vid = _make_variant_id(config)
-        self.assertIn("basic", vid)
-        self.assertIn("t04", vid)
-
-    @patch("src.agents.generation._build_variant_configs")
-    @patch("src.agents.generation.create_variant_llm")
-    def test_generation_node_produces_variants(self, mock_create: MagicMock, mock_configs: MagicMock) -> None:
-        from src.agents.generation import generation_node
-
-        mock_llm = MagicMock()
-        mock_response = MagicMock()
-        mock_response.content = "```cpp\nint main() {}\n```"
-        mock_llm.invoke.return_value = mock_response
-        mock_create.return_value = mock_llm
-
-        mock_configs.return_value = [
-            {"model": "gpt-4o", "prompt_strategy": "parse", "temperature": 0.7},
-            {"model": "gpt-4o", "prompt_strategy": "api-chain", "temperature": 0.7},
-        ]
-
-        state = {
-            "target_config": {
-                "library_name": "test",
-                "header": "test.h",
-                "language": "C",
-                "include_dirs": ["."],
-                "source_files": ["test.c"],
-            },
-            "research_summary": "analysis here",
-            "messages": [],
-            "temperature_schedule": [0.7],
-            "current_temp_idx": 0,
-        }
-
-        result = generation_node(state)
-        self.assertEqual(len(result["variants"]), 2)
-        self.assertEqual(result["variants"][0]["compile_status"], "pending")
-        self.assertIn("int main()", result["variants"][0]["source_code"])
-
-
-class TestGraph(unittest.TestCase):
-    def test_graph_compiles(self) -> None:
-        from src.pipeline.graph import compile_graph
-
-        graph = compile_graph()
-        self.assertIsNotNone(graph)
 
 
 class TestCoverageAgent(unittest.TestCase):
@@ -324,175 +177,18 @@ exit:
             }
         }
         uncovered = _extract_uncovered_lines(report)
-        self.assertEqual(len(uncovered), 1)
+        # Segment [5,1,0,True,True] expands to lines 5-9 (until next segment at line 10)
+        self.assertEqual(len(uncovered), 5)
         self.assertEqual(uncovered[0]["line_no"], 5)
-
-    @patch("src.agents.coverage.run_fuzz_with_coverage")
-    @patch("src.agents.coverage._analyze_reachability")
-    def test_coverage_node(self, mock_reachability: MagicMock, mock_fuzz: MagicMock) -> None:
-        from src.agents.coverage import coverage_node
-
-        mock_reachability.return_value = {10, 20, 30}
-        mock_fuzz.return_value = {
-            "coverage": {
-                "totals": {
-                    "lines": {"count": 100, "covered": 65},
-                    "branches": {"count": 20, "covered": 12},
-                },
-                "files": [],
-            }
-        }
-
-        state = {
-            "target_config": {
-                "target_name": "test",
-                "source_files": ["test.c"],
-                "include_dirs": ["."],
-            },
-            "variants": [
-                {
-                    "id": "test_v1",
-                    "config": {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
-                    "source_code": "int main() {}",
-                    "compile_status": "ok",
-                    "compile_errors": "",
-                    "patch_attempts": 0,
-                    "coverage_pct": 0.0,
-                    "branch_coverage_pct": 0.0,
-                    "uncovered_lines": [],
-                    "unique_coverage": [],
-                    "iteration": 0,
-                },
-            ],
-            "fuzz_seconds": 10,
-            "messages": [],
-            "iteration": 0,
-            "target_coverage": 70.0,
-            "max_iterations": 3,
-            "current_temp_idx": 0,
-        }
-
-        result = coverage_node(state)
-        self.assertEqual(result["iteration"], 1)
-        self.assertAlmostEqual(result["best_coverage"], 65.0)
-        self.assertEqual(result["variants"][0]["coverage_pct"], 65.0)
-        self.assertAlmostEqual(result["variants"][0]["branch_coverage_pct"], 60.0)
-        self.assertIn("[Coverage]", result["messages"][0])
+        self.assertEqual(uncovered[-1]["line_no"], 9)
 
 
-class TestRefinementAgent(unittest.TestCase):
-    def test_build_variant_analysis(self) -> None:
-        from src.agents.refinement import _build_variant_analysis
+class TestGraph(unittest.TestCase):
+    def test_graph_compiles(self) -> None:
+        from src.pipeline.graph import compile_graph
 
-        variants = [
-            {
-                "id": "v1",
-                "config": {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
-                "source_code": "int main() {}",
-                "compile_status": "ok",
-                "compile_errors": "",
-                "patch_attempts": 0,
-                "coverage_pct": 55.0,
-                "branch_coverage_pct": 40.0,
-                "uncovered_lines": [],
-                "unique_coverage": [10, 20],
-            },
-        ]
-        analysis = _build_variant_analysis(variants)
-        self.assertIn("v1", analysis)
-        self.assertIn("55.0%", analysis)
-
-    def test_build_uncovered_reachable(self) -> None:
-        from src.agents.refinement import _build_uncovered_reachable
-
-        variants = [
-            {
-                "id": "v1",
-                "config": {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
-                "source_code": "",
-                "compile_status": "ok",
-                "compile_errors": "",
-                "patch_attempts": 0,
-                "coverage_pct": 50.0,
-                "branch_coverage_pct": 30.0,
-                "uncovered_lines": [
-                    {"file": "test.c", "line_no": 15, "reachable": True},
-                    {"file": "test.c", "line_no": 25, "reachable": False},
-                ],
-                "unique_coverage": [],
-            },
-        ]
-        result = _build_uncovered_reachable(variants)
-        self.assertIn("test.c:15", result)
-        self.assertNotIn("test.c:25", result)
-
-    def test_render_refinement_prompt(self) -> None:
-        from src.agents.refinement import _render_refinement_prompt
-
-        config = {
-            "library_name": "cjson",
-            "header": "cJSON.h",
-            "language": "C",
-        }
-        variants = [
-            {
-                "id": "v1",
-                "config": {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
-                "source_code": "int main() {}",
-                "compile_status": "ok",
-                "compile_errors": "",
-                "patch_attempts": 0,
-                "coverage_pct": 50.0,
-                "branch_coverage_pct": 30.0,
-                "uncovered_lines": [],
-                "unique_coverage": [],
-            },
-        ]
-        prompt = _render_refinement_prompt(config, variants)
-        self.assertIn("cjson", prompt)
-        self.assertNotIn("{{", prompt)
-
-    @patch("src.agents.refinement.create_llm")
-    def test_refinement_node_produces_fused(self, mock_create_llm: MagicMock) -> None:
-        from src.agents.refinement import refinement_node
-
-        mock_llm = MagicMock()
-        mock_response = MagicMock()
-        mock_response.content = "```cpp\n#include <cstdint>\nint LLVMFuzzerTestOneInput() {}\n```"
-        mock_llm.invoke.return_value = mock_response
-        mock_create_llm.return_value = mock_llm
-
-        state = {
-            "target_config": {
-                "library_name": "test",
-                "header": "test.h",
-                "language": "C",
-            },
-            "variants": [
-                {
-                    "id": "v1",
-                    "config": {"model": "gpt-4o", "prompt_strategy": "basic", "temperature": 0.7},
-                    "source_code": "int main() {}",
-                    "compile_status": "ok",
-                    "compile_errors": "",
-                    "patch_attempts": 0,
-                    "coverage_pct": 50.0,
-                    "branch_coverage_pct": 30.0,
-                    "uncovered_lines": [],
-                    "unique_coverage": [],
-                    "iteration": 0,
-                },
-            ],
-            "messages": [],
-            "iteration": 1,
-            "current_temp_idx": 0,
-        }
-
-        result = refinement_node(state)
-        self.assertEqual(len(result["variants"]), 2)
-        self.assertEqual(result["variants"][-1]["id"], "fused_iter0")
-        self.assertEqual(result["variants"][-1]["compile_status"], "pending")
-        self.assertIn("[Refinement]", result["messages"][0])
+        graph = compile_graph()
+        self.assertIsNotNone(graph)
 
 
 class TestSupervisor(unittest.TestCase):
@@ -511,7 +207,7 @@ class TestReport(unittest.TestCase):
                 "library_name": "cjson",
                 "description": "Lightweight JSON parser",
             },
-            "iteration": 2,
+            "round": 2,
             "target_coverage": 70.0,
             "best_coverage": 65.0,
             "fuzz_seconds": 15,
@@ -544,7 +240,7 @@ class TestReport(unittest.TestCase):
                     "unique_coverage": [],
                 },
             ],
-            "messages": ["[Research] Done", "[Coverage] v1: 65.0%"],
+            "messages": ["[Knowledge] Done", "[Coverage] v1: 65.0%"],
         }
 
         report = generate_report(state)

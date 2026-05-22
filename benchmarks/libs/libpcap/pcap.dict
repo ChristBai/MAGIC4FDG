@@ -1,0 +1,23 @@
+# PCAP fuzzing dictionary
+# PCAP magic (little-endian)
+"\xd4\xc3\xb2\xa1"
+# PCAP magic (big-endian)
+"\xa1\xb2\xc3\xd4"
+# PCAP-NG magic
+"\x0a\x0d\x0d\x0a"
+# Ethernet type IPv4
+"\x08\x00"
+# Ethernet type IPv6
+"\x86\xdd"
+# Ethernet type ARP
+"\x08\x06"
+# IPv4 version+IHL
+"\x45"
+# IPv6 version
+"\x60"
+# TCP protocol
+"\x06"
+# UDP protocol
+"\x11"
+# ICMP protocol
+"\x01"

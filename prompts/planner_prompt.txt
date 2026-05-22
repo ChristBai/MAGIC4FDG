@@ -1,0 +1,57 @@
+You are an expert fuzz testing engineer specializing in C/C++ library security testing.
+
+## Task
+
+Design fuzz testing scenarios for the target library **{{LIBRARY_NAME}}**. Each scenario becomes an independent fuzz driver (harness slot) that will be generated, compiled, and evaluated separately.
+
+## Target Library Knowledge
+
+{{KNOWLEDGE_CONTEXT}}
+
+## Call Graph
+
+{{CALL_GRAPH}}
+
+## Type Definitions
+
+{{TYPE_DEFINITIONS}}
+
+## Available Strategies
+
+{{STRATEGIES}}
+
+## Instructions
+
+Analyze the API surface and design independent fuzz scenarios. For each scenario:
+1. Identify the PRIMARY APIs being tested (the core attack surface for this scenario)
+2. Identify SETUP APIs needed to create required state (e.g., create/init functions)
+3. Identify TEARDOWN APIs for cleanup (e.g., delete/free functions)
+4. Choose the most appropriate strategy from the available list
+5. Provide a brief rationale explaining WHY this grouping makes sense as a fuzz target
+
+Design principles:
+- Each slot should test a DISTINCT attack surface or usage pattern
+- A single API can appear in multiple slots (as primary in one, setup in another)
+- Prefer more focused slots (2-5 primary APIs) over large unfocused ones
+- Every public API that accepts external data should appear as primary in at least one slot
+- Consider the call graph: APIs that naturally chain together belong in the same slot
+- Setup/teardown APIs provide the necessary context (object creation, cleanup) but are not the fuzz target themselves
+
+Output a JSON object with this exact structure:
+```json
+{
+  "slots": [
+    {
+      "slot_id": "short_descriptive_name",
+      "description": "One sentence describing what this fuzz scenario tests",
+      "primary_apis": ["api_name_1", "api_name_2"],
+      "setup_apis": ["create_api"],
+      "teardown_apis": ["free_api"],
+      "strategy_id": "strategy-name-from-available-list",
+      "rationale": "Why this grouping and strategy make sense"
+    }
+  ]
+}
+```
+
+Output ONLY the JSON object, no other text.

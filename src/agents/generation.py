@@ -1,170 +1,143 @@
-"""Generation Agent: produces multiple fuzz driver variants using different strategies.
+"""Generation Agent：基于策略库生成 fuzz driver 变体。
 
-Generates N variants = models × strategies at a fixed temperature per round.
-Three literature-backed strategies produce structurally different drivers:
-- parse: Feed raw fuzz bytes to parsing APIs (PromptFuzz/FUDGE style)
-- api-chain: Multi-API call sequences with state transitions (CKGFuzzer style)
-- roundtrip: Parse → modify → serialize → re-parse (MUTATO style)
+两种模式：
+Round 1（from-scratch）：
+  为每个 harness slot 从零生成一个 fuzz driver，使用 Planner 选择的策略。
+  策略 prompt 从 strategies/*.md 文件加载，拼接到生成模板中。
 
-In the temperature-escalation iteration model, each round uses a different
-temperature from the schedule (0.4 → 0.7 → 0.9). The strategy suffix in the
-prompt has the most significant impact on coverage outcomes.
+Round 2+（incremental）：
+  基于每个 active slot 的历史最佳 driver 进行增量改进，
+  结合 Analyst 输出的约束和未覆盖簇信息，添加新的代码路径。
+  不从零生成，而是修改现有代码以保留已有覆盖率。
 """
 
 from __future__ import annotations
 
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from src.infra.llm_factory import create_variant_llm
+from src.infra.llm_factory import create_llm
 from src.infra.token_tracker import extract_token_usage, get_tracker
+from src.knowledge.context_builder import build_generator_context
 from src.pipeline.state import DriverVariant, PipelineState, VariantConfig
 from src.utils import strip_code_fences
 
+STRATEGIES_DIR = Path(__file__).resolve().parents[2] / "strategies"
 GENERATION_TEMPLATE = (Path(__file__).resolve().parents[2] / "prompts" / "generation_prompt.txt").read_text(
     encoding="utf-8"
 )
 
-STRATEGY_SUFFIXES = {
-    "parse": """
-## Strategy: Parse-Centric (PromptFuzz-style)
 
-Feed raw fuzz bytes directly to ALL parsing API variants. Maximize parser path coverage:
-- Call every parse function variant (with/without length, with/without opts)
-- Use different option combinations (require_null_terminated = true/false)
-- Exercise error paths by feeding truncated/malformed data
-- After successful parse, do minimal downstream ops (Print, GetArraySize) to trigger post-parse paths
-- Do NOT focus on construction APIs — prioritize parser internals
-""",
-    "api-chain": """
-## Strategy: API-Chain (CKGFuzzer-style)
-
-Use fuzz bytes to drive multi-API call sequences covering state transitions:
-- Use first bytes as path selectors (switch on data[0] % N)
-- Each path exercises a different API combination chain (create→add→query→modify→delete)
-- Cover ownership transfer (DetachItem→AddItem to different parent)
-- Cover edge cases: empty containers, index out of bounds, NULL keys
-- Allocate via Create* APIs, modify via Add*/Replace*/Delete*, query via Get*/Has*, cleanup via Delete
-- Do NOT just parse — focus on construction and manipulation APIs
-- IMPORTANT: Do NOT call *_InitHooks or similar hook-setting APIs unless you provide valid malloc/free function pointers
-""",
-    "roundtrip": """
-## Strategy: Round-Trip (MUTATO-style)
-
-Parse → Modify → Serialize → Re-parse to cover both directions:
-- Parse fuzz input into internal representation
-- Apply mutations driven by fuzz bytes (add fields, delete fields, replace values, change types)
-- Serialize back to string (both Print and PrintUnformatted)
-- Re-parse the serialized output
-- Compare or further manipulate the re-parsed result
-- This exercises serializer formatting, escaping, buffer management paths that parse-only never reaches
-- IMPORTANT: Do NOT call *_InitHooks or similar hook-setting APIs unless you provide valid malloc/free function pointers
-""",
-    "targeted": """
-## Strategy: Targeted Coverage Expansion
-
-Based on the coverage feedback above, specifically target the UNCOVERED functions and branches:
-- For each zero-coverage function listed, construct valid arguments and call it
-- For each uncovered line shown with source context, reason about what API call sequence reaches it
-- Chain API calls that lead to the uncovered code paths
-- Use fuzz bytes to vary arguments and trigger different branches within targeted functions
-- Prioritize functions with 0% coverage over those with partial coverage
-- If no coverage feedback is available yet, use the api-chain approach: multi-API call sequences with state transitions
-- IMPORTANT: Do NOT call *_InitHooks or similar hook-setting APIs unless you provide valid malloc/free function pointers
-""",
-}
-
-
-def _build_prompt(target_config: dict, strategy: str, research_summary: str, coverage_feedback: str = "") -> str:
-    """Build the generation prompt based on strategy."""
-    include_dirs = target_config.get("include_dirs", [])
-    base_prompt = (
-        GENERATION_TEMPLATE
-        .replace("{{LIBRARY_NAME}}", target_config.get("library_name", ""))
-        .replace("{{LANGUAGE}}", target_config.get("language", "C"))
-        .replace("{{HEADER}}", target_config.get("header", ""))
-        .replace("{{INCLUDE_DIRS}}", ", ".join(include_dirs))
-        .replace("{{RESEARCH_SUMMARY}}", research_summary or "(not available)")
-        .replace("{{COVERAGE_FEEDBACK}}", coverage_feedback or "(first iteration — no prior coverage data)")
-    )
-
-    suffix = STRATEGY_SUFFIXES.get(strategy, "")
-    return base_prompt + suffix
-
-
-def _make_variant_id(config: VariantConfig) -> str:
-    """Generate a human-readable variant ID from config."""
-    model_short = config["model"].replace("-", "").replace(".", "")[:8]
-    temp_str = str(config["temperature"]).replace(".", "")
-    return f"{model_short}_{config['prompt_strategy']}_t{temp_str}"
+def _load_strategy_suffix(strategy_id: str) -> str:
+    """根据策略 ID 加载策略文件正文（frontmatter 之后的部分），作为 prompt 后缀。"""
+    for f in STRATEGIES_DIR.glob("*.md"):
+        if f.name == "README.md":
+            continue
+        content = f.read_text(encoding="utf-8")
+        # Check if this file matches the strategy_id
+        if f"id: {strategy_id}" in content[:500]:
+            # Return body after frontmatter
+            end = content.find("---", 3)
+            if end > 0:
+                return content[end + 3:].strip()
+    return ""
 
 
 def generation_node(state: PipelineState) -> dict:
-    """LangGraph node: generate multiple fuzz driver variants.
-
-    Uses the current temperature from the temperature schedule.
-    Each iteration generates models × strategies variants at a single temperature.
-    """
+    """LangGraph 节点：为每个 strategy selection 生成一个 fuzz driver 变体。"""
     target_config = state["target_config"]
-    research_summary = state.get("research_summary", "")
-    coverage_feedback = state.get("coverage_feedback", "")
+    knowledge = state.get("knowledge", {})
+    selections = state.get("strategy_selections", [])
+    slots = state.get("harness_slots", [])
+    round_num = state.get("round", 0)
+    coverage_analysis = state.get("coverage_analysis", {})
 
-    temp_schedule = state.get("temperature_schedule", [0.7])
-    temp_idx = state.get("current_temp_idx", 0)
-    current_temp = temp_schedule[min(temp_idx, len(temp_schedule) - 1)]
+    is_incremental = round_num > 0
+    mode = "incremental" if is_incremental else "from-scratch"
+    print(f"[Generation] Round {round_num + 1}, mode={mode}, {len(selections)} variants", flush=True)
 
-    variant_configs = _build_variant_configs(current_temp)
-    print(f"[Generation] Round {temp_idx + 1}, temp={current_temp}, {len(variant_configs)} variants", flush=True)
-
-    variants: list[DriverVariant] = list(state.get("variants", []))
+    variants: list[DriverVariant] = []
     messages = list(state.get("messages", []))
-    messages.append(f"[Generation] Starting round {temp_idx + 1} with temperature={current_temp}")
+    messages.append(f"[Generation] Starting round {round_num + 1} ({mode})")
 
-    for i, config in enumerate(variant_configs, 1):
-        variant_id = _make_variant_id(config)
-        print(f"[Generation]   ({i}/{len(variant_configs)}) {variant_id}...", flush=True)
-        prompt = _build_prompt(target_config, config["prompt_strategy"], research_summary, coverage_feedback)
+    max_workers = int(os.environ.get("FUZZFORGE_LLM_PARALLEL", os.environ.get("FUZZFORGE_PARALLEL", "10")))
 
+    if not selections:
+        return {"variants": [], "messages": messages}
+
+    def _generate_one(i: int, selection):
+        slot_id = selection["slot_id"]
+        strategy_id = selection["strategy_id"]
+        variant_id = f"{slot_id}_{strategy_id}_r{round_num}"
+
+        slot = next((s for s in slots if s["slot_id"] == slot_id), None)
+        slot_knowledge = knowledge.get("slot_knowledge", {}).get(slot_id, {})
+        knowledge_context = build_generator_context(knowledge, selection, slot, slot_knowledge)
+        strategy_suffix = _load_strategy_suffix(strategy_id)
+        slot_analysis = state.get("slot_coverage_analyses", {}).get(slot_id, coverage_analysis)
+
+        if is_incremental and slot and slot.get("best_source"):
+            prompt = _build_incremental_prompt(
+                target_config, knowledge_context, strategy_suffix,
+                slot["best_source"], slot_analysis,
+            )
+        else:
+            prompt = _build_fresh_prompt(target_config, knowledge_context, strategy_suffix)
+
+        source_code = ""
+        error_msg = ""
         try:
-            llm = create_variant_llm(config["model"], config["temperature"])
-            for _attempt in range(3):
-                try:
-                    response = llm.invoke([
-                        SystemMessage(content="You are an expert C/C++ security engineer. Output only valid C++ source code."),
-                        HumanMessage(content=prompt),
-                    ])
-                    break
-                except Exception as retry_err:
-                    if _attempt < 2:
-                        import time
-                        print(f"[Generation]   retry {_attempt+1}/3 for {variant_id}...", flush=True)
-                        time.sleep(5 * (_attempt + 1))
-                    else:
-                        raise retry_err
+            llm = create_llm(temperature=0.4)
+            response = llm.invoke([
+                SystemMessage(content="You are an expert C/C++ security engineer. Output only valid C++ source code."),
+                HumanMessage(content=prompt),
+            ])
             prompt_tok, completion_tok = extract_token_usage(response)
-            get_tracker().record("generation", config["model"], prompt_tok, completion_tok)
+            get_tracker().record("generation", "default", prompt_tok, completion_tok)
             raw_code = response.content if isinstance(response.content, str) else str(response.content)
             source_code = strip_code_fences(raw_code)
         except Exception as e:
-            source_code = ""
-            print(f"[Generation]   FAILED {variant_id}: {e}", flush=True)
-            messages.append(f"[Generation] Failed {variant_id}: {e}")
+            error_msg = str(e)
+
+        return i, variant_id, slot_id, strategy_id, source_code, error_msg
+
+    with ThreadPoolExecutor(max_workers=min(len(selections), max_workers)) as pool:
+        futures = [
+            pool.submit(_generate_one, i, sel)
+            for i, sel in enumerate(selections, 1)
+        ]
+        results = []
+        for future in as_completed(futures):
+            results.append(future.result())
+
+    for i, variant_id, slot_id, strategy_id, source_code, error_msg in sorted(results):
+        if error_msg:
+            print(f"[Generation]   FAILED {variant_id}: {error_msg}", flush=True)
+            messages.append(f"[Generation] Failed {variant_id}: {error_msg}")
+        else:
+            print(f"[Generation]   ({i}/{len(selections)}) {variant_id} OK", flush=True)
 
         variant: DriverVariant = {
             "id": variant_id,
-            "config": config,
+            "slot_id": slot_id,
+            "config": VariantConfig(
+                model="default",
+                prompt_strategy=strategy_id,
+                temperature=0.4,
+            ),
             "source_code": source_code,
             "compile_status": "pending" if source_code else "failed",
-            "compile_errors": "" if source_code else "Generation failed",
+            "compile_errors": "" if source_code else f"Generation failed: {error_msg}",
             "patch_attempts": 0,
             "coverage_pct": 0.0,
             "branch_coverage_pct": 0.0,
             "uncovered_lines": [],
             "covered_lines": [],
             "function_coverage": [],
-            "unique_coverage": [],
-            "iteration": temp_idx,
+            "is_incremental": is_incremental,
         }
         variants.append(variant)
         messages.append(f"[Generation] Generated {variant_id} ({len(source_code)} chars)")
@@ -175,49 +148,84 @@ def generation_node(state: PipelineState) -> dict:
     }
 
 
-def _build_variant_configs(temperature: float) -> list[VariantConfig]:
-    """Build variant configs for a single temperature (models × strategies)."""
-    from src.infra.llm_factory import _load_config
-
-    config = _load_config()
-    models_cfg = config.get("models", [])
-    matrix_cfg = config.get("variant_matrix", {})
-
-    strategies = matrix_cfg.get("strategies", ["parse", "api-chain", "roundtrip"])
-
-    if not models_cfg:
-        import os
-        model = os.environ.get("LLM_MODEL", "gpt-4o")
-        models_cfg = [{"name": model}]
-
-    matrix: list[VariantConfig] = []
-    for model_info in models_cfg:
-        for strategy in strategies:
-            matrix.append({
-                "model": model_info["name"],
-                "prompt_strategy": strategy,
-                "temperature": temperature,
-            })
-    return matrix
+def _build_fresh_prompt(target_config: dict, knowledge_context: str, strategy_suffix: str) -> str:
+    """构建 Round 1 从零生成的 prompt（模板 + 知识上下文 + 策略后缀）。"""
+    include_dirs = target_config.get("include_dirs", [])
+    prompt = (
+        GENERATION_TEMPLATE
+        .replace("{{LIBRARY_NAME}}", target_config.get("library_name", ""))
+        .replace("{{LANGUAGE}}", target_config.get("language", "C"))
+        .replace("{{HEADER}}", target_config.get("header", ""))
+        .replace("{{INCLUDE_DIRS}}", ", ".join(include_dirs))
+        .replace("{{RESEARCH_SUMMARY}}", knowledge_context)
+        .replace("{{COVERAGE_FEEDBACK}}", "(first round — no prior coverage data)")
+    )
+    if strategy_suffix:
+        prompt += "\n\n" + strategy_suffix
+    return prompt
 
 
-def _default_variant_matrix() -> list[VariantConfig]:
-    """Build variant matrix for the first iteration (uses first temperature).
+def _build_incremental_prompt(
+    target_config: dict,
+    knowledge_context: str,
+    strategy_suffix: str,
+    base_source: str,
+    coverage_analysis: dict,
+) -> str:
+    """构建 Round 2+ 增量改进的 prompt（现有代码 + Analyst 约束 + 知识上下文）。"""
+    constraints_text = ""
+    if coverage_analysis:
+        constraints = coverage_analysis.get("constraints", [])
+        if constraints:
+            constraints_text = "\n".join(
+                f"- {c.get('target', '?')}: {c.get('precondition', '')}"
+                for c in constraints[:10]
+            )
 
-    Kept for backward compatibility with supervisor initial state.
-    """
-    from src.infra.llm_factory import _load_config
+    clusters_text = ""
+    if coverage_analysis:
+        clusters = coverage_analysis.get("uncovered_clusters", [])
+        if clusters:
+            clusters_text = "\n".join(
+                f"- {', '.join(c.get('functions', []))}: {c.get('root_cause', '')}"
+                for c in clusters[:5]
+            )
 
-    config = _load_config()
-    matrix_cfg = config.get("variant_matrix", {})
-    temperatures = matrix_cfg.get("temperatures", [0.7])
-    return _build_variant_configs(temperatures[0])
+    prompt = f"""## Task: Improve Fuzz Driver for {target_config.get("library_name", "")}
 
+You have an existing fuzz driver that achieves partial coverage. Your task is to
+MODIFY it to cover additional code paths identified by the analyst.
 
-def get_temperature_schedule() -> list[float]:
-    """Get the temperature schedule from config."""
-    from src.infra.llm_factory import _load_config
+## Current Driver (to be improved)
 
-    config = _load_config()
-    matrix_cfg = config.get("variant_matrix", {})
-    return matrix_cfg.get("temperatures", [0.7])
+```cpp
+{base_source}
+```
+
+## Analyst Constraints (must address these)
+
+{constraints_text or "(no specific constraints)"}
+
+## Uncovered Code Clusters
+
+{clusters_text or "(no cluster data)"}
+
+## API Knowledge
+
+{knowledge_context}
+
+## Strategy Guidance
+
+{strategy_suffix}
+
+## Instructions
+
+1. Keep the parts of the current driver that work well
+2. ADD new code paths that address the analyst constraints above
+3. Do NOT remove existing coverage — only add new coverage
+4. Ensure proper memory management (free all allocated resources)
+5. Output a complete, compilable fuzz driver
+
+Output ONLY the complete C/C++ source code for the improved driver.
+"""
+    return prompt

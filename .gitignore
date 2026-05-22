@@ -21,3 +21,6 @@ timeout-*
 .vscode/
 .idea/
 dev/
+
+# Thesis (large LaTeX/PDF files)
+docs/thesis/

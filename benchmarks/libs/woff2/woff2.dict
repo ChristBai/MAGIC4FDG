@@ -1,0 +1,21 @@
+# WOFF2 fuzzing dictionary
+# WOFF2 signature
+"wOF2"
+# TrueType signature
+"\x00\x01\x00\x00"
+# OpenType signature
+"OTTO"
+# WOFF1 signature
+"wOFF"
+# Table tags
+"cmap"
+"glyf"
+"head"
+"hhea"
+"hmtx"
+"loca"
+"maxp"
+"name"
+"post"
+"CFF "
+"OS/2"

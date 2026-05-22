@@ -1,7 +1,7 @@
-"""Target config loading and path resolution.
+"""项目配置：根路径定义和目标库配置加载。
 
-Provides ROOT (project root path) and utilities to load/validate target library
-configuration JSON files used by the pipeline.
+提供 ROOT（项目根目录路径）和目标库 JSON 配置文件的加载/校验工具。
+Pipeline 中所有路径解析都基于 ROOT。
 """
 
 from __future__ import annotations

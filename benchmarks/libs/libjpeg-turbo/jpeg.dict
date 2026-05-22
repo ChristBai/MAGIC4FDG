@@ -1,0 +1,27 @@
+# JPEG fuzzing dictionary
+# SOI (Start of Image)
+"\xff\xd8"
+# EOI (End of Image)
+"\xff\xd9"
+# APP0 (JFIF)
+"\xff\xe0"
+# APP1 (EXIF)
+"\xff\xe1"
+# DQT (Define Quantization Table)
+"\xff\xdb"
+# SOF0 (Start of Frame, Baseline)
+"\xff\xc0"
+# SOF2 (Progressive)
+"\xff\xc2"
+# DHT (Define Huffman Table)
+"\xff\xc4"
+# SOS (Start of Scan)
+"\xff\xda"
+# DRI (Define Restart Interval)
+"\xff\xdd"
+# COM (Comment)
+"\xff\xfe"
+# JFIF identifier
+"JFIF\x00"
+# EXIF identifier
+"Exif\x00\x00"

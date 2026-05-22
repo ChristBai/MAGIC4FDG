@@ -1,11 +1,9 @@
-"""Naive baseline: single-shot LLM fuzz driver generation.
+"""朴素基线：单次 LLM 生成 fuzz driver（无迭代、无覆盖率反馈）。
 
-No multi-strategy, no iteration, no coverage feedback, no research agent.
-Just: read header → prompt LLM once → compile → fuzz → measure coverage.
+作为对照组，与 FuzzForge 多 agent 流水线进行基准对比。
+流程：读取头文件 → 单次 LLM 生成 → 编译 → fuzz → 测量覆盖率。
 
-This is the control group for benchmark comparison against FuzzForge.
-
-Usage:
+用法：
     python3 -m src.baselines.naive \
         --target-config targets/cjson.json \
         --fuzz-seconds 15 \

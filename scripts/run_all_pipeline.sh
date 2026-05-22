@@ -1,18 +1,18 @@
 #!/bin/bash
-# FuzzForge multi-agent pipeline: run all 12 target libraries
-# Unified params: temperature=0.4, fuzz_seconds=60, model=claude-opus-4-6+sonnet
+# FuzzForge v2 multi-agent pipeline: run all target libraries
+# Unified params: temperature=0.4, fuzz_seconds=60, model=claude-opus-4-6
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
 source .venv/bin/activate
 
 FUZZ_SECONDS=60
-MAX_ITERATIONS=10
-TARGET_COVERAGE=70
+MAX_ROUNDS=10
+TARGET_COVERAGE=100
 PER_LIB_TIMEOUT=3600
 
-echo "=== FuzzForge Multi-Agent Pipeline: 12 libraries ==="
-echo "Fuzz duration: ${FUZZ_SECONDS}s | Max iterations: ${MAX_ITERATIONS} | Target: ${TARGET_COVERAGE}%"
+echo "=== FuzzForge v2 Pipeline: all target libraries ==="
+echo "Fuzz duration: ${FUZZ_SECONDS}s | Max rounds: ${MAX_ROUNDS} | Target: ${TARGET_COVERAGE}%"
 echo "Per-library timeout: ${PER_LIB_TIMEOUT}s"
 echo ""
 
@@ -31,8 +31,24 @@ fi
 SUCCEEDED=()
 FAILED=()
 
+# Skip libraries that already have results from this run
+SKIP_LIBS=("")
+
 for config_file in targets/*.json; do
   lib=$(basename "$config_file" .json)
+
+  # Skip already completed
+  skip=false
+  for completed in "${SKIP_LIBS[@]}"; do
+    if [ "$lib" = "$completed" ]; then
+      skip=true
+      break
+    fi
+  done
+  if [ "$skip" = true ]; then
+    echo "[SKIP] $lib — already completed"
+    continue
+  fi
 
   # Check Docker health
   if ! docker info >/dev/null 2>&1; then
@@ -49,9 +65,9 @@ for config_file in targets/*.json; do
   echo "=== $lib — $(date) ==="
   echo "============================================"
 
-  timeout "$PER_LIB_TIMEOUT" python3 -m src.pipeline \
+  timeout "$PER_LIB_TIMEOUT" python3 -m src.pipeline.supervisor \
     --target-config "$config_file" \
-    --max-iterations "$MAX_ITERATIONS" \
+    --max-rounds "$MAX_ROUNDS" \
     --target-coverage "$TARGET_COVERAGE" \
     --fuzz-seconds "$FUZZ_SECONDS" \
     2>&1

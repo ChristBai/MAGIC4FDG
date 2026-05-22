@@ -1,4 +1,4 @@
-"""Shared utilities for the fuzz driver generation pipeline."""
+"""通用工具函数。"""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import re
 
 
 def strip_code_fences(text: str) -> str:
-    """Remove markdown code fences from LLM output, returning raw source code."""
+    """从 LLM 输出中去除 markdown 代码围栏，返回纯源代码。"""
     text = text.strip()
     # If there's a code block in the middle of text (LLM added explanation), extract it
     match = re.search(r"```(?:cpp|c\+\+|c|h)?\s*\n(.+?)```", text, re.DOTALL)

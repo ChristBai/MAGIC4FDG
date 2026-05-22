@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Project Does
 
-FuzzForge: Coverage-guided multi-agent fuzz driver generation for C/C++ libraries. Uses LangGraph to orchestrate 5 specialized LLM agents that iteratively generate, compile-fix, and improve LibFuzzer fuzz drivers based on fine-grained coverage feedback.
+FuzzForge v2: Coverage-guided multi-agent fuzz driver generation for C/C++ libraries. Uses LangGraph to orchestrate 7 specialized agents (Knowledge, Planner, Generation, Patching, Coverage, Checkpoint, Analyst) that iteratively generate, compile-fix, and improve LibFuzzer fuzz drivers based on fine-grained coverage feedback.
 
-Core pipeline: Research Agent → Generation Agent (N models × 3 strategies) → Patching Agent → Coverage Agent (fuzz + llvm-cov + LLVM CFG reachability) → Refinement Agent → iterate with temperature escalation until target coverage reached or temperatures exhausted.
+Core design: **Explore → Exploit**. Round 1 uses LLM scene reasoning to allocate harness slots with matched strategies (explore), Round 2+ incrementally improves each slot using Analyst constraints (exploit).
 
 ## Commands
 
@@ -20,13 +20,13 @@ pip install -e .
 python3 -m pytest tests/ -v
 ```
 
-### Run multi-agent pipeline
+### Run v2 multi-agent pipeline
 ```bash
-python3 -m src.pipeline \
+PYTHONUNBUFFERED=1 python3 -m src.pipeline.supervisor \
   --target-config targets/cjson.json \
-  --max-iterations 10 \
-  --target-coverage 70 \
-  --fuzz-seconds 15
+  --max-rounds 5 \
+  --target-coverage 100 \
+  --fuzz-seconds 60
 ```
 
 ### Build Docker image
@@ -34,63 +34,139 @@ python3 -m src.pipeline \
 ./scripts/docker_build.sh
 ```
 
-## Architecture
+## Architecture (v2)
 
-### Pipeline flow (LangGraph StateGraph)
+### Pipeline DAG (LangGraph StateGraph)
 ```
-Research → Generation(N variants) → Patching(≤3 retries each) → Coverage
-                                                                    ↓
-                                                          target met? → Done
-                                                                    ↓
-                                                    Refinement → Generation → Patching → Coverage → ...
+Knowledge(clang AST) → Planner(select strategies) → Generation(N variants)
+    → Patching(≤3 retries) → [any compiled?] → Coverage(fuzz+llvm-cov)
+    → Checkpoint(save state) → Analyst(diagnose gaps)
+    → [Supervisor Decision: continue/stop] → Planner(exploit) → ...
 ```
 
-Temperature escalation: each round uses next temperature from schedule (e.g., 0.4 → 0.7 → 0.9). Total iterations = len(temperatures).
+### Agent Roles
+| Agent | Role | LLM? |
+|-------|------|------|
+| Knowledge | clang AST extraction: APIs, types, call graph | No |
+| Planner | Round 1: LLM scene reasoning for slot allocation; Round 2+: iterate active slots | Yes |
+| Generation | From-scratch (R1) or incremental (R2+) harness generation | Yes |
+| Patching | Fix compilation errors (≤3 retries) | Yes |
+| Coverage | Docker fuzz + llvm-cov + CFG reachability analysis | No |
+| Checkpoint | Serialize state to JSON after each coverage round | No |
+| Analyst | Diagnose coverage gaps → structured constraints (no code) | Yes |
 
-### Key design decisions
-- **Fork mode** (`-fork=1`): LibFuzzer runs each input in subprocess; ASan crashes don't prevent coverage collection
+### Key Design Decisions
+- **Single model**: claude-opus-4-6 only (experiment showed no universal model advantage)
+- **Explore → Exploit**: Round 1 LLM reasons about API semantics to design fuzz scenarios, Round 2+ iterates each slot independently
+- **All-in-Docker**: Knowledge extraction (clang AST), compilation, fuzzing, and coverage all run inside Docker containers
+- **Build cache**: Knowledge container builds once → cache to host → compile/fuzz mount read-only (skip rebuild)
+- **Corpus replay for coverage**: Fork mode workers get SIGKILL'd at timeout (profraw lost); replay corpus with `-runs=0` (no fork) to collect complete coverage
+- **clang AST knowledge**: `clang -Xclang -ast-dump=json` for precise type info and macro expansion
+- **Strategy library**: 10 strategies in `strategies/*.md` with YAML frontmatter metadata
+- **Knowledge accumulation**: constraints_discovered, positive_patterns, negative_patterns grow across rounds
+- **Checkpoint recovery**: state saved after each Coverage round, supports `--resume`
+- **Fork mode** (`-fork=1`): LibFuzzer runs each input in subprocess; ASan crashes don't prevent coverage
 - **ASAN_OPTIONS**: `halt_on_error=0:exitcode=0:detect_leaks=0` for crash tolerance
-- **Strategy matters more than temperature**: api-chain consistently outperforms roundtrip in first round
-- **Targeted strategy**: uses LLVM CFG reachability + prior coverage feedback to guide generation toward uncovered-but-reachable lines
 - **CFG reachability filtering**: avoids wasting LLM calls on structurally unreachable code paths
 
-### Generation strategies (literature-backed)
-| Strategy | Style | Academic basis |
-|----------|-------|---------------|
-| `api-chain` | Multi-API call sequences with state transitions | CKGFuzzer, Scheduzz |
-| `roundtrip` | Parse → modify → serialize → re-parse | MUTATO, OSS-Fuzz-Gen |
-| `targeted` | Coverage-feedback-guided generation targeting uncovered reachable lines | FuzzForge (ours) |
+### Strategy Library (`strategies/`)
+| Strategy | Style |
+|----------|-------|
+| `parse-centric` | Feed raw fuzz bytes to parser APIs |
+| `multi-api-sequence` | Chain multiple API calls with state |
+| `roundtrip` | Parse → modify → serialize → re-parse |
+| `targeted-expansion` | Coverage-feedback-guided (exploit rounds) |
+| `structure-aware` | Construct valid structured inputs |
+| `error-path` | Focus on error handling paths |
+| `stateful` | Maintain state across calls |
+| `resource-boundary` | Memory/buffer boundary testing |
+| `callback-driven` | Register callbacks + trigger |
+| `differential` | Compare different API implementations |
 
-### LLM configuration
-Models and variant matrix defined in `llm_config.json`:
+### LLM Configuration
+Single model in `llm_config.json`:
 ```json
 {
-  "models": [{"name": "...", "api_url": "...", "api_key": "...", "max_tokens": 2048}],
-  "variant_matrix": {"strategies": ["api-chain", "roundtrip", "targeted"], "temperatures": [0.4, 0.7, 0.9]}
+  "models": [{"name": "claude-opus-4-6", "api_url": "...", "api_key": "...", "max_tokens": 4096}],
+  "defaults": {"timeout": 120, "max_retries": 5}
 }
 ```
 Fallback: `LLM_MODEL`, `LLM_API_KEY`, `LLM_API_URL` environment variables.
 
-### Target config format
-JSON files in `targets/`. Fields: `library_name`, `header`, `source_files`, `include_dirs`, `seed_corpus`, `language`, `description`.
+### Target Config Format
+JSON files in `targets/`. Two modes:
+- **With `build_command`**: paths use Docker-internal `/opt/bench/...` (library built in container, cached to host)
+- **Without `build_command`**: paths relative to project root (source compiled directly)
+
+Fields: `library_name`, `header`, `source_files`, `include_dirs`, `seed_corpus`, `language`, `description`, `build_command` (optional), `static_libs` (optional), `link_flags` (optional), `coverage_sources` (optional), `dictionary` (optional).
 
 ### Output
 ```
 generated/iterations/<library_name>/<YYYYMMDD_HHMMSS>/
 ├── best_driver.cpp
+├── best_drivers/
+│   ├── slot_0.cpp
+│   ├── slot_1.cpp
+│   └── ...
 ├── variants/
 ├── report.md
 └── report.json
 generated/iterations/<library_name>/latest -> <YYYYMMDD_HHMMSS>
+generated/checkpoints/<library_name>/round_<N>.json
 ```
 
 ### Docker
-Ubuntu 22.04 with clang/llvm/lld. Orchestrator runs on host; compile/fuzz/coverage in container.
+Ubuntu 22.04 with clang/llvm/lld (image: `fuzzforge:latest`). Orchestrator runs on host; ALL execution (Knowledge/compile/fuzz/coverage) in container.
+
+**Build cache**: Knowledge container builds library → caches artifacts to `generated/build_cache/<lib>/` → subsequent compile/fuzz containers mount cache as `/opt/bench:ro` (skip rebuild).
+
+**Coverage collection**: Fork mode (`-fork=1`) for crash isolation → corpus replay (`-runs=0`, no fork) to flush profraw → `llvm-profdata merge` → `llvm-cov export`.
+
+## File Structure (v2)
+
+```
+src/
+  pipeline/
+    state.py           # v2 TypedDicts: PipelineState, DriverVariant, HarnessSlot, KnowledgeStore
+    graph.py           # v2 LangGraph DAG with conditional routing
+    supervisor.py      # CLI entry + checkpoint recovery
+    checkpoint.py      # Serialize/restore state between rounds
+    report.py          # Markdown + JSON report generation
+  agents/
+    knowledge.py       # clang AST extraction (no LLM)
+    planner.py         # LLM scene reasoning (R1) + iteration management (R2+)
+    generation.py      # From-scratch + incremental harness generation
+    patching.py        # Compilation error fixing
+    coverage.py        # Fuzz + coverage + reachability + slot updates
+    analyst.py         # Coverage gap diagnosis → structured constraints
+  knowledge/
+    extractor.py       # clang AST JSON parsing
+    context_builder.py # Per-agent knowledge context formatting
+    grouping.py        # API grouping + strategy matching rule engine
+  infra/
+    llm_factory.py     # ChatOpenAI creation with retry
+    docker_runner.py   # Docker execution: Knowledge/compile/fuzz/coverage + build cache
+    token_tracker.py   # Token usage tracking
+  baselines/
+    naive.py           # Single-shot LLM baseline (no iteration)
+strategies/            # 10 strategy .md files with YAML frontmatter
+prompts/               # LLM prompt templates
+targets/               # Target library configs
+```
 
 ## Conventions
 
 - Python 3.10+ (`from __future__ import annotations`, `X | Y` type hints)
-- Dependencies: langgraph, langchain-core, langchain-openai
+- Dependencies: langgraph, langchain-core, langchain-openai, PyYAML
 - Coverage: `-fprofile-instr-generate -fcoverage-mapping` with ASan
 - Proxy: requires `LANGCHAIN_OPENAI_TCP_KEEPALIVE=0` (set in `__main__.py`)
 - Progress output: all agents print status with `flush=True` for real-time monitoring
+- Use `PYTHONUNBUFFERED=1` when running pipeline to see output in real-time
+
+## Known Issues (as of 2026-05-22)
+
+1. **Report only shows last round's variants**: `report.json` and supervisor summary only count variants from the final round, not cumulative.
+
+2. **langchain_openai import is slow**: Takes 40-180s due to network environment (proxy). Not a code bug.
+
+3. **macOS xattr + Docker VirtioFS**: Extended attributes on generated files can cause "Resource deadlock avoided" errors. Mitigated by `_clear_xattr()` calls after file writes.

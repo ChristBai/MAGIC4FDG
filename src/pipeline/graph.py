@@ -1,85 +1,111 @@
-"""LangGraph state graph definition for the multi-agent fuzz driver pipeline.
+"""LangGraph 状态图定义：FuzzForge v2 多 agent 流水线。
 
-Defines the DAG of agent nodes and routing logic:
-  Research → Generation → Patching → Coverage
-                                        ↓
-                              target met or temps exhausted → END
-                                        ↓
-                              Refinement → Generation → Patching → Coverage → ...
+本文件定义 pipeline 的执行拓扑（DAG），是整个系统的"骨架"。
+每个节点是一个 agent 函数，接收 PipelineState、返回部分更新。
+LangGraph 负责按拓扑顺序调度节点、合并状态、处理条件分支。
 
-Routing after coverage checks: target coverage reached, temperature schedule
-exhausted, or max_iterations exceeded. If none, routes to refinement which
-advances the temperature index and triggers a new generation round.
+DAG 拓扑：
+  Knowledge → Planner → Generation → Patching ─┬─→ Coverage → Checkpoint → Analyst
+                                                │                              ↓
+                                                │                    Supervisor Decision
+                                                │                   /        |         \
+                                                └→ Checkpoint(跳过coverage) END  Planner(R2+)  END
+                                                        ↓                          ↓
+                                                     Analyst                  Generation → ...
+
+两个条件分支点：
+1. Patching 之后：有变体编译成功 → Coverage；全部失败 → 跳过 Coverage 直接到 Checkpoint
+2. Analyst 之后（Supervisor 决策）：
+   - 达到目标覆盖率 → END
+   - 超过最大轮次 → END
+   - 覆盖率连续 3 轮无提升（plateau） → END
+   - 所有 slot 已 converged → END
+   - 否则 → 回到 Planner 开始下一轮（exploit 模式）
 """
 
 from __future__ import annotations
 
 from langgraph.graph import END, StateGraph
 
+from src.agents.analyst import analyst_node
 from src.agents.coverage import coverage_node
 from src.agents.generation import generation_node
+from src.agents.knowledge import knowledge_node
 from src.agents.patching import patching_node
-from src.agents.refinement import refinement_node
-from src.agents.research import research_node
+from src.agents.planner import planner_node
+from src.pipeline.checkpoint import checkpoint_node
 from src.pipeline.state import PipelineState
 
 
 def _route_after_patching(state: PipelineState) -> str:
-    """Route after patching: proceed to coverage if any variant compiled."""
+    """Patching 后的路由。
+
+    有变体编译成功 → 进入 coverage 正常流程；
+    全部失败 → 跳过 coverage 直接进入 checkpoint → analyst，
+    让 analyst 记录失败原因，supervisor 决定是否换策略重试。
+    """
     variants = state.get("variants", [])
     if any(v["compile_status"] == "ok" for v in variants):
         return "coverage"
-    return END
+    return "checkpoint"
 
 
-def _route_after_coverage(state: PipelineState) -> str:
-    """Route after coverage: end if target met or all temperatures exhausted."""
+def _route_after_analyst(state: PipelineState) -> str:
+    """Supervisor 决策：判断是否继续迭代。
+
+    四个停止条件（任一满足即终止）：
+    1. 已达到目标覆盖率（项目级并集）
+    2. 已达到最大轮次
+    3. 全部 harness slot 已 converged（各自 plateau 后停止）
+    4. Pipeline 级 plateau >= 3（项目级覆盖率连续无提升）
+    """
     best_coverage = state.get("best_coverage", 0.0)
-    target_coverage = state.get("target_coverage", 70.0)
+    target_coverage = state.get("target_coverage", 100.0)
 
     if best_coverage >= target_coverage:
         return END
 
-    temp_schedule = state.get("temperature_schedule", [0.7])
-    current_idx = state.get("current_temp_idx", 0)
-    iteration = state.get("iteration", 0)
-    max_iterations = state.get("max_iterations", 10)
-
-    if current_idx >= len(temp_schedule) - 1:
-        return END
-    if iteration >= max_iterations:
+    round_num = state.get("round", 0)
+    max_rounds = state.get("max_rounds", 10)
+    if round_num >= max_rounds:
         return END
 
-    return "refinement"
+    slots = state.get("harness_slots", [])
+    active = [s for s in slots if s.get("status") == "active"]
+    if not active:
+        return END
+
+    plateau = state.get("coverage_plateau_count", 0)
+    if plateau >= 3:
+        return END
+
+    return "planner"
 
 
 def build_graph() -> StateGraph:
-    """Build the multi-agent pipeline graph.
-
-    Flow: Research → Generation → Patching → Coverage
-                                                ↓
-                                      target met or temps exhausted → END
-                                                ↓
-                                      Refinement → Generation → Patching → Coverage → ...
-    """
+    """构建 v2 多 agent 流水线图。"""
     graph = StateGraph(PipelineState)
 
-    graph.add_node("research", research_node)
+    graph.add_node("knowledge", knowledge_node)
+    graph.add_node("planner", planner_node)
     graph.add_node("generation", generation_node)
     graph.add_node("patching", patching_node)
     graph.add_node("coverage", coverage_node)
-    graph.add_node("refinement", refinement_node)
+    graph.add_node("checkpoint", checkpoint_node)
+    graph.add_node("analyst", analyst_node)
 
-    graph.set_entry_point("research")
-    graph.add_edge("research", "generation")
+    graph.set_entry_point("knowledge")
+    graph.add_edge("knowledge", "planner")
+    graph.add_edge("planner", "generation")
     graph.add_edge("generation", "patching")
     graph.add_conditional_edges("patching", _route_after_patching)
-    graph.add_conditional_edges("coverage", _route_after_coverage)
-    graph.add_edge("refinement", "generation")
+    graph.add_edge("coverage", "checkpoint")
+    graph.add_edge("checkpoint", "analyst")
+    graph.add_conditional_edges("analyst", _route_after_analyst)
 
     return graph
 
 
 def compile_graph():
-    """Compile the graph into a runnable."""
+    """编译图为可执行对象。"""
     return build_graph().compile()

@@ -1,0 +1,110 @@
+[
+  {
+    "library": "cjson",
+    "report_date": "20260517",
+    "line_covered": 1022,
+    "line_total": 2321,
+    "line_pct": 44.032744506678156,
+    "branch_pct": 46.60714285714286,
+    "function_pct": 28.07017543859649
+  },
+  {
+    "library": "harfbuzz",
+    "report_date": "20260517",
+    "line_covered": 52334,
+    "line_total": 70787,
+    "line_pct": 73.93165411728143,
+    "branch_pct": 72.62186759755642,
+    "function_pct": 80.12101534828807
+  },
+  {
+    "library": "jsoncpp",
+    "report_date": "20260517",
+    "line_covered": 1608,
+    "line_total": 8287,
+    "line_pct": 19.403885603958006,
+    "branch_pct": 21.55607948804311,
+    "function_pct": 18.36379460400348
+  },
+  {
+    "library": "libjpeg-turbo",
+    "report_date": "20260517",
+    "line_covered": 56582,
+    "line_total": 83292,
+    "line_pct": 67.93209431878212,
+    "branch_pct": 60.64922235750879,
+    "function_pct": 74.15559772296015
+  },
+  {
+    "library": "libpcap",
+    "report_date": "20260517",
+    "line_covered": 9258,
+    "line_total": 16064,
+    "line_pct": 57.631972111553786,
+    "branch_pct": 60.168502916396626,
+    "function_pct": 53.42237061769616
+  },
+  {
+    "library": "libpng",
+    "report_date": "20260517",
+    "line_covered": 8248,
+    "line_total": 13275,
+    "line_pct": 62.131826741996235,
+    "branch_pct": 44.19293990838049,
+    "function_pct": 60.99290780141844
+  },
+  {
+    "library": "libxml2",
+    "report_date": "20260517",
+    "line_covered": 63667,
+    "line_total": 90433,
+    "line_pct": 70.40239735494787,
+    "branch_pct": 67.48130585445924,
+    "function_pct": 70.5363443895554
+  },
+  {
+    "library": "mbedtls",
+    "report_date": "20260517",
+    "line_covered": 20327,
+    "line_total": 65090,
+    "line_pct": 31.229067445076048,
+    "branch_pct": 27.955480122723415,
+    "function_pct": 37.42173112338858
+  },
+  {
+    "library": "openssl",
+    "report_date": "20260517",
+    "line_covered": 616961,
+    "line_total": 1381625,
+    "line_pct": 44.654736270695736,
+    "branch_pct": 36.82684411245233,
+    "function_pct": 52.57429678958354
+  },
+  {
+    "library": "re2",
+    "report_date": "20260517",
+    "line_covered": 10111,
+    "line_total": 33424,
+    "line_pct": 30.2507180469124,
+    "branch_pct": 30.767794922847187,
+    "function_pct": 25.763062596999482
+  },
+  {
+    "library": "woff2",
+    "report_date": "20260517",
+    "line_covered": 3494,
+    "line_total": 3989,
+    "line_pct": 87.59087490599148,
+    "branch_pct": 82.71386430678466,
+    "function_pct": 80
+  },
+  {
+    "library": "zlib",
+    "report_date": "20260517",
+    "line_covered": 4383,
+    "line_total": 5425,
+    "line_pct": 80.79262672811059,
+    "branch_pct": 71.355421686747,
+    "function_pct": 85.79234972677595
+  }
+]

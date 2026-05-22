@@ -1,4 +1,4 @@
-"""Allow running the pipeline as: python3 -m src.pipeline"""
+"""Pipeline 模块入口：支持 python3 -m src.pipeline 方式运行。"""
 
 import os
 os.environ.setdefault("LANGCHAIN_OPENAI_TCP_KEEPALIVE", "0")
