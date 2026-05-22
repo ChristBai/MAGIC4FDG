@@ -176,6 +176,9 @@ def _cleanup_temp_files() -> None:
                     "run_coverage.sh", "reachability_analysis.sh", "coverage_*.json"]:
         for f in gen_dir.glob(pattern):
             f.unlink(missing_ok=True)
+    for pattern in ["crash-*", "oom-*", "timeout-*"]:
+        for f in ROOT.glob(pattern):
+            f.unlink(missing_ok=True)
 
 
 def main() -> None:

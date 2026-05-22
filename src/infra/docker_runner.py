@@ -436,13 +436,16 @@ mkdir -p /tmp/corpus /tmp/artifacts
 {accumulated_corpus_setup}
 
 # Fuzz with fork mode (crash isolation)
+# cd /tmp so fork-mode crash files land in /tmp, not /workspace (project root)
 export LLVM_PROFILE_FILE=/tmp/fuzzer_%m.profraw
 export ASAN_OPTIONS=halt_on_error=0:exitcode=0:detect_leaks=0
+cd /tmp
 /tmp/fuzz_cov /tmp/corpus \\
     -max_total_time={fuzz_seconds} \\
     -artifact_prefix=/tmp/artifacts/ \\
     -fork=1 \\
     -use_cmp=1 {dict_flag} 2>&1 || true
+cd /workspace
 
 # Save accumulated corpus
 mkdir -p {accumulated_corpus_dir}
