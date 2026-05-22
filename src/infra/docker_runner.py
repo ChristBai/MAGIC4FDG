@@ -145,11 +145,25 @@ cp -r /opt/bench/* /workspace/{cache_dir}/ 2>/dev/null || true
 """
 
     source_ast_steps = ""
-    for i, src in enumerate(source_files[:5]):
-        source_ast_steps += f"""
+    if source_files:
+        for i, src in enumerate(source_files[:5]):
+            source_ast_steps += f"""
 echo "===AST_SRC_{i}_START==="
 clang {lang_flag} {include_flags} -Xclang -ast-dump=json -fsyntax-only "{src}" 2>/dev/null || true
 echo "===AST_SRC_{i}_END==="
+"""
+    elif "/opt/bench" in header:
+        ext = "cpp" if "c++" in lang_flag else "c"
+        source_ast_steps = f"""
+# Auto-discover source files from build output
+SRC_FILES=$(find /opt/bench -path "*/src/*.{ext}" -o -path "*/src/*.cc" 2>/dev/null | head -5)
+_IDX=0
+for _src in $SRC_FILES; do
+    echo "===AST_SRC_${{_IDX}}_START==="
+    clang {lang_flag} {include_flags} -Xclang -ast-dump=json -fsyntax-only "$_src" 2>/dev/null || true
+    echo "===AST_SRC_${{_IDX}}_END==="
+    _IDX=$((_IDX + 1))
+done
 """
 
     return f"""#!/bin/bash

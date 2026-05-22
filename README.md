@@ -97,6 +97,7 @@ PYTHONUNBUFFERED=1 python3 -m src.pipeline.supervisor \
 - `--target-coverage`：目标行覆盖率百分比（默认 100）
 - `--fuzz-seconds`：每个变体的 fuzz 时间（秒，默认 60）
 - `--max-compile-retries`：每个变体最多编译修复次数（默认 3）
+- `--temperature`：LLM 生成温度（默认 0.4，planner 自动 -0.1）
 - `--resume`：从最近的 checkpoint 恢复执行
 
 ### 输出

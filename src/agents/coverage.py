@@ -389,7 +389,7 @@ def coverage_node(state: PipelineState) -> dict:
 
     # Pipeline-level plateau（基于项目级覆盖率）
     plateau_count = state.get("coverage_plateau_count", 0)
-    if project_coverage - prev_best < 0.5 and round_num > 0:
+    if project_coverage - prev_best < 1.0 and round_num > 0:
         plateau_count += 1
     else:
         plateau_count = 0

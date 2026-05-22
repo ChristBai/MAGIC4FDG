@@ -115,7 +115,7 @@ def _plan_initial(state: PipelineState, knowledge: dict) -> dict:
     prompt = prompt.replace("{{STRATEGIES}}", strategies_text)
 
     try:
-        llm = create_llm(temperature=0.3)
+        llm = create_llm(temperature=max(state.get("temperature", 0.4) - 0.1, 0.1))
         response = llm.invoke([
             SystemMessage(content="You are an expert fuzz testing engineer specializing in C/C++ library security testing."),
             HumanMessage(content=prompt),

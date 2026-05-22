@@ -34,6 +34,7 @@ def run_pipeline(
     target_coverage: float = 100.0,
     fuzz_seconds: int = 60,
     max_compile_retries: int = 3,
+    temperature: float = 0.4,
     resume: bool = False,
 ) -> dict:
     """执行完整的多 agent 流水线，返回最终状态。
@@ -81,6 +82,7 @@ def run_pipeline(
         "best_driver": "",
         "best_drivers": {},
         "coverage_plateau_count": 0,
+        "temperature": temperature,
         "union_line_covered": 0,
         "union_line_total": 0,
         "union_branch_covered": 0,
@@ -205,6 +207,10 @@ def main() -> None:
         "--resume", action="store_true",
         help="Resume from latest checkpoint if available",
     )
+    parser.add_argument(
+        "--temperature", type=float, default=0.4,
+        help="LLM temperature for generation (default: 0.4)",
+    )
 
     args = parser.parse_args()
 
@@ -214,6 +220,7 @@ def main() -> None:
         target_coverage=args.target_coverage,
         fuzz_seconds=args.fuzz_seconds,
         max_compile_retries=args.max_compile_retries,
+        temperature=args.temperature,
         resume=args.resume,
     )
 

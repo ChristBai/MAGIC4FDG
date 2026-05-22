@@ -26,7 +26,8 @@ PYTHONUNBUFFERED=1 python3 -m src.pipeline.supervisor \
   --target-config targets/cjson.json \
   --max-rounds 5 \
   --target-coverage 100 \
-  --fuzz-seconds 60
+  --fuzz-seconds 60 \
+  --temperature 0.4
 ```
 
 ### Build Docker image

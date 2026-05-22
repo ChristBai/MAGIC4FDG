@@ -53,6 +53,7 @@ def generation_node(state: PipelineState) -> dict:
     selections = state.get("strategy_selections", [])
     slots = state.get("harness_slots", [])
     round_num = state.get("round", 0)
+    temperature = state.get("temperature", 0.4)
     coverage_analysis = state.get("coverage_analysis", {})
 
     is_incremental = round_num > 0
@@ -90,7 +91,7 @@ def generation_node(state: PipelineState) -> dict:
         source_code = ""
         error_msg = ""
         try:
-            llm = create_llm(temperature=0.4)
+            llm = create_llm(temperature=temperature)
             response = llm.invoke([
                 SystemMessage(content="You are an expert C/C++ security engineer. Output only valid C++ source code."),
                 HumanMessage(content=prompt),
@@ -126,7 +127,7 @@ def generation_node(state: PipelineState) -> dict:
             "config": VariantConfig(
                 model="default",
                 prompt_strategy=strategy_id,
-                temperature=0.4,
+                temperature=temperature,
             ),
             "source_code": source_code,
             "compile_status": "pending" if source_code else "failed",
