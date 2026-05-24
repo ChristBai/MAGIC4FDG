@@ -1,4 +1,4 @@
-# FuzzForge
+# MAGIC4FDG
 
 覆盖率引导的多 Agent Fuzz Driver 自动生成系统，面向 C/C++ 库。
 
@@ -189,7 +189,7 @@ Ubuntu 22.04 + clang/llvm/lld。所有编译、fuzz、覆盖率收集和 Knowled
 收集完整的 profraw 数据（fork worker 被 SIGKILL 时 profraw 不会 flush）。
 
 ```bash
-./scripts/docker_build.sh    # 构建 fuzzforge:latest
+./scripts/docker_build.sh    # 构建 magic4fdg:latest
 ```
 
 ## 测试

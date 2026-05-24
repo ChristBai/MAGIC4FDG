@@ -98,9 +98,9 @@
 
 ---
 
-## 5. Naive Baseline（FuzzForge 单轮单驱动基线，Claude Opus 4.6，温度 0.4，60s fuzz）
+## 5. Naive Baseline（MAGIC4FDG 单轮单驱动基线，Claude Opus 4.6，温度 0.4，60s fuzz）
 
-> 单次 prompt → 单驱动 → 60s 模糊测试，无迭代/无反馈，作为 FuzzForge 多智能体管线的对照下限。
+> 单次 prompt → 单驱动 → 60s 模糊测试，无迭代/无反馈，作为 MAGIC4FDG 多智能体管线的对照下限。
 > 7 库实测（cjson/zlib/jsoncpp/libpcap/libpng/openssl/re2），5 库（harfbuzz/libjpeg-turbo/libxml2/mbedtls/woff2）编译未通过，属项目本身缺陷，标 `*`。
 > tokens 估：单次 generation prompt ~~3k input + ~1.5k output ≈ 4.5k tokens/lib。
 > aggregated time 估：build (~~30-300s) + LLM (~~30s) + compile (~~10s) + fuzz (60s) + cov collect (~30s) ≈ 150-400s/lib。
@@ -164,9 +164,9 @@
 
 ## 数据来源与推断说明
 
-1. **OSS-Fuzz 官方**：`/Users/christbai/Documents/New project/FuzzForge/data/oss_fuzz_official/summary.json`，2026-05-17 抓取自 oss-fuzz coverage report。无 branch_count 直数（仅有 branch_pct），按 line_total × branch/line ratio 反推。
+1. **OSS-Fuzz 官方**：`/Users/christbai/Documents/New project/MAGIC4FDG/data/oss_fuzz_official/summary.json`，2026-05-17 抓取自 oss-fuzz coverage report。无 branch_count 直数（仅有 branch_pct），按 line_total × branch/line ratio 反推。
 2. **oss-fuzz-bench**：`/Users/christbai/Documents/New project/oss-fuzz-bench/results/all_results.json`，本机实测 wall_time。line/branch count 部分缺失项按 line_total × line_pct 反推。
-3. **oss-fuzz-gen**：`/Users/christbai/Documents/New project/oss-fuzz-gen/results-fuzzforge12/summary/all_results.json`。5 库标 `*`：libjpeg-turbo/libxml2/mbedtls/harfbuzz/openssl 因 oss-fuzz-gen 自身生成 harness 编译失败导致 0 覆盖率，**属项目本身缺陷**，按要求未填补。tokens 因 claude-opus-4-6 缺 tiktoken 编码未直接计入 log，按平均调用模式（~95k/call × 调用次数）估算。
+3. **oss-fuzz-gen**：`/Users/christbai/Documents/New project/oss-fuzz-gen/results-magic4fdg12/summary/all_results.json`。5 库标 `*`：libjpeg-turbo/libxml2/mbedtls/harfbuzz/openssl 因 oss-fuzz-gen 自身生成 harness 编译失败导致 0 覆盖率，**属项目本身缺陷**，按要求未填补。tokens 因 claude-opus-4-6 缺 tiktoken 编码未直接计入 log，按平均调用模式（~95k/call × 调用次数）估算。
 4. **PromptFuzz**：6 库（cjson/zlib/libpcap/libpng/libjpeg-turbo/re2）来自论文 Lyu et al. CCS '24 Table 1（gpt-3.5-turbo, T=0.9, 24h, sample=10）；cjson 列同时给出本次实测 5h02m 数据 77.26% (819/1060)；6 库（jsoncpp/woff2/harfbuzz/libxml2/mbedtls/openssl）按论文整体水平 + 同族库表现推断。论文 token cost ≈ $3.40/lib，按 gpt-3.5-turbo 混合价格 ($0.50/1M input + $1.50/1M output) 反推约 1.7M tokens/lib。
 5. **Hopper**：6 库来自上述 PromptFuzz 论文 Table 1（同表给出 Hopper 对照基线）；其余 6 库按 Hopper 算法特征（结构感知 + API 推断）类比推断。Hopper 为非 LLM 方法，token=0。
 

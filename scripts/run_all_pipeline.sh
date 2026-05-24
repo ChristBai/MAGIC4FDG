@@ -1,5 +1,5 @@
 #!/bin/bash
-# FuzzForge v2 multi-agent pipeline: run all target libraries
+# MAGIC4FDG v2 multi-agent pipeline: run all target libraries
 # Unified params: temperature=0.4, fuzz_seconds=60, model=claude-opus-4-6
 set -uo pipefail
 
@@ -11,7 +11,7 @@ MAX_ROUNDS=10
 TARGET_COVERAGE=100
 PER_LIB_TIMEOUT=3600
 
-echo "=== FuzzForge v2 Pipeline: all target libraries ==="
+echo "=== MAGIC4FDG v2 Pipeline: all target libraries ==="
 echo "Fuzz duration: ${FUZZ_SECONDS}s | Max rounds: ${MAX_ROUNDS} | Target: ${TARGET_COVERAGE}%"
 echo "Per-library timeout: ${PER_LIB_TIMEOUT}s"
 echo ""
@@ -23,8 +23,8 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 # Pre-flight: check image exists
-if ! docker images fuzzforge:latest --format '{{.Repository}}' | grep -q fuzzforge; then
-  echo "[INFO] Building fuzzforge Docker image..."
+if ! docker images magic4fdg:latest --format '{{.Repository}}' | grep -q magic4fdg; then
+  echo "[INFO] Building magic4fdg Docker image..."
   ./scripts/docker_build.sh 2>&1 | tail -3
 fi
 

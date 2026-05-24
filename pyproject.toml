@@ -1,5 +1,5 @@
 [project]
-name = "fuzzforge"
+name = "magic4fdg"
 version = "0.3.0"
 description = "Coverage-guided multi-agent fuzz driver generation for C/C++ libraries using LLM"
 requires-python = ">=3.10"
@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [project.scripts]
-fuzzforge = "src.pipeline.supervisor:main"
+magic4fdg = "src.pipeline.supervisor:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

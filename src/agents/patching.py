@@ -118,7 +118,7 @@ def patching_node(state: PipelineState) -> dict:
     non_pending = [v for v in variants if v["compile_status"] != "pending"]
     print(f"[Patching] {len(pending)} pending variants to compile", flush=True)
 
-    max_workers = int(os.environ.get("FUZZFORGE_DOCKER_PARALLEL", os.environ.get("FUZZFORGE_PARALLEL", "5")))
+    max_workers = int(os.environ.get("MAGIC4FDG_DOCKER_PARALLEL", os.environ.get("MAGIC4FDG_PARALLEL", "5")))
 
     if not pending:
         compiled_count = sum(1 for v in non_pending if v["compile_status"] == "ok")

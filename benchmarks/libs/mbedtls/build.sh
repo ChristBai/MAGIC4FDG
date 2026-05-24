@@ -48,5 +48,11 @@ mkdir -p "$PREFIX/src"
 cp "$SRC/library/"*.c "$PREFIX/src/" 2>/dev/null || true
 cp -r "$SRC/include/mbedtls/"*.h "$PREFIX/src/" 2>/dev/null || true
 
+# Collect seed corpus from library test data (certificates, keys, test vectors)
+mkdir -p "$PREFIX/seed_corpus"
+find "$SRC" -path "*/tests/data_files/*" \( -name "*.crt" -o -name "*.pem" -o -name "*.der" -o -name "*.key" \) -size -50k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$SRC" -path "*/tests/suites/*" -name "*.data" -size -50k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+echo "[seed] Collected $(ls "$PREFIX/seed_corpus/" 2>/dev/null | wc -l) mbedtls seed files"
+
 echo "=== mbedtls build complete ==="
 ls -la "$PREFIX/lib/libmbedcrypto.a" "$PREFIX/lib/libmbedx509.a" "$PREFIX/lib/libmbedtls.a"

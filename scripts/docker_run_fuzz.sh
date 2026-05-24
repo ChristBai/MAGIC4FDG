@@ -10,5 +10,5 @@ docker run --rm \
   -e "TARGET_CONFIG=${TARGET_CONFIG:-targets/cjson_parse.json}" \
   -v "${ROOT_DIR}:/workspace" \
   -w /workspace \
-  fuzzforge:latest \
+  magic4fdg:latest \
   bash scripts/build_and_run.sh

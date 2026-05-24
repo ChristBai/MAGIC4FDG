@@ -1,4 +1,4 @@
-"""Supervisor：FuzzForge v2 流水线的 CLI 入口和顶层编排。
+"""Supervisor：MAGIC4FDG v2 流水线的 CLI 入口和顶层编排。
 
 职责：
 1. 解析命令行参数，加载目标库配置
@@ -184,7 +184,7 @@ def _cleanup_temp_files() -> None:
 def main() -> None:
     """CLI 入口：解析参数并启动流水线。"""
     parser = argparse.ArgumentParser(
-        description="FuzzForge v2: multi-agent fuzz driver generation pipeline"
+        description="MAGIC4FDG v2: multi-agent fuzz driver generation pipeline"
     )
     parser.add_argument(
         "--target-config", required=True,

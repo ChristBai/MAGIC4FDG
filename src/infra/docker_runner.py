@@ -1,6 +1,6 @@
 """Docker 执行封装：Knowledge 提取、编译、fuzzing 和覆盖率收集。
 
-所有操作在 Docker 容器（fuzzforge:latest）中运行，项目根目录挂载到 /workspace。
+所有操作在 Docker 容器（magic4fdg:latest）中运行，项目根目录挂载到 /workspace。
 
 架构：
 - Knowledge 阶段：build + clang AST 分析，产物缓存到 generated/build_cache/<lib>/
@@ -19,7 +19,7 @@ from pathlib import Path
 
 from src.config import ROOT
 
-DOCKER_IMAGE = "fuzzforge:latest"
+DOCKER_IMAGE = "magic4fdg:latest"
 
 
 def _clear_xattr(path: Path) -> None:
@@ -39,7 +39,7 @@ def _docker_run(
 ) -> subprocess.CompletedProcess[str]:
     """在 Docker 容器中执行命令，挂载 workspace。"""
     uid = run_id or f"{os.getpid()}-{threading.get_ident()}"
-    container_name = f"fuzzforge-{uid}"[:63]
+    container_name = f"magic4fdg-{uid}"[:63]
     mem_limit = memory or os.environ.get("DOCKER_MEMORY", "2g")
     docker_cmd = [
         "docker", "run", "--rm",
@@ -61,12 +61,15 @@ def _docker_run(
     docker_cmd += command
 
     try:
-        return subprocess.run(
+        result = subprocess.run(
             docker_cmd,
             capture_output=True,
-            text=True,
             timeout=timeout,
         )
+        # Decode with errors='replace' to handle binary data in fuzzer output
+        result.stdout = result.stdout.decode("utf-8", errors="replace") if isinstance(result.stdout, bytes) else result.stdout
+        result.stderr = result.stderr.decode("utf-8", errors="replace") if isinstance(result.stderr, bytes) else result.stderr
+        return result
     except subprocess.TimeoutExpired:
         subprocess.run(["docker", "kill", container_name],
                        capture_output=True, timeout=10)
@@ -234,11 +237,21 @@ def _extract_section(output: str, name: str) -> str | None:
 # =============================================================================
 
 def _get_build_cache_volumes(target_config: dict) -> tuple[list[str], bool]:
-    """检查 build_cache 是否存在，返回 (extra_volumes, cache_hit)。"""
+    """检查 build_cache 是否存在，返回 (extra_volumes, cache_hit)。
+
+    Cache 结构: build_cache/<lib>/<lib>/include/ (mirrors /opt/bench/<lib>/)
+    """
     library_name = target_config.get("library_name", "")
     cache_dir = ROOT / "generated" / "build_cache" / library_name
-    if cache_dir.exists() and any(cache_dir.iterdir()):
-        return [f"{cache_dir}:/opt/bench:ro"], True
+    if not cache_dir.exists():
+        return [], False
+    # Look for include/ or lib/ at any depth ≤ 2 inside cache_dir
+    for sub in cache_dir.rglob("include"):
+        if sub.is_dir() and len(sub.relative_to(cache_dir).parts) <= 2:
+            return [f"{cache_dir}:/opt/bench:ro"], True
+    for sub in cache_dir.rglob("lib"):
+        if sub.is_dir() and len(sub.relative_to(cache_dir).parts) <= 2:
+            return [f"{cache_dir}:/opt/bench:ro"], True
     return [], False
 
 
@@ -336,7 +349,7 @@ echo "COMPILE_SUCCESS"
         line for line in combined_output.splitlines()
         if "error:" in line.lower() or "undefined" in line.lower() or "fatal" in line.lower()
     ]
-    error_output = "\n".join(error_lines[:30]) if error_lines else combined_output[-2000:]
+    error_output = "\n".join(error_lines) if error_lines else combined_output[-4000:]
     return False, error_output
 
 
@@ -380,6 +393,9 @@ def run_fuzz_with_coverage(
     seed_corpus_setup = ""
     if seed_corpus:
         seed_corpus_setup = f'cp -r "{seed_corpus}"/* /tmp/corpus/ 2>/dev/null || true'
+    # Also copy from build-cache seed corpus (collected from library test data during build)
+    build_cache_seed = f"/opt/bench/{library_name}/seed_corpus"
+    seed_corpus_setup += f'\ncp -r "{build_cache_seed}"/* /tmp/corpus/ 2>/dev/null || true'
 
     accumulated_corpus_dir = f"generated/accumulated_corpus/{library_name}"
     accumulated_corpus_setup = f'cp -r "{accumulated_corpus_dir}"/* /tmp/corpus/ 2>/dev/null || true'
@@ -460,9 +476,10 @@ export LLVM_PROFILE_FILE=/tmp/replay_%m.profraw
 $LLVM_PROFDATA merge -sparse /tmp/replay_*.profraw -o /tmp/fuzzer.profdata 2>/dev/null \\
   || $LLVM_PROFDATA merge -sparse /tmp/fuzzer_*.profraw -o /tmp/fuzzer.profdata
 
-# Export coverage as JSON
+# Export coverage as JSON (skip-expansions/functions to keep output manageable for large libs)
 $LLVM_COV export /tmp/fuzz_cov \\
     -instr-profile=/tmp/fuzzer.profdata \\
+    -skip-expansions -skip-functions \\
     {cov_sources} > {report_json}
 
 # Export function-level report

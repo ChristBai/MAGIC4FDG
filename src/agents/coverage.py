@@ -321,7 +321,7 @@ def coverage_node(state: PipelineState) -> dict:
     if reachable_lines:
         messages.append(f"[Coverage] Reachability analysis found {len(reachable_lines)} reachable lines")
 
-    max_workers = int(os.environ.get("FUZZFORGE_DOCKER_PARALLEL", os.environ.get("FUZZFORGE_PARALLEL", "5")))
+    max_workers = int(os.environ.get("MAGIC4FDG_DOCKER_PARALLEL", os.environ.get("MAGIC4FDG_PARALLEL", "5")))
     non_compiled = [v for v in variants if v["compile_status"] != "ok"]
 
     if not compiled:

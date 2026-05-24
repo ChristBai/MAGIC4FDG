@@ -36,5 +36,12 @@ make install
 mkdir -p "$PREFIX/src"
 cp "$SRC/"*.c "$SRC/"*.h "$PREFIX/src/"
 
+# Collect seed corpus from library test data
+mkdir -p "$PREFIX/seed_corpus"
+find "$SRC" -name "*.gz" -size -100k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$SRC" -path "*/test/*" -type f -size -100k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+printf '\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00' > "$PREFIX/seed_corpus/minimal.gz"
+echo "[seed] Collected $(ls "$PREFIX/seed_corpus/" 2>/dev/null | wc -l) zlib seed files"
+
 echo "=== zlib build complete ==="
 ls -la "$PREFIX/lib/libz.a"

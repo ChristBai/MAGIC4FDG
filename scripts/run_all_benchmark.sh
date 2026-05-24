@@ -9,7 +9,7 @@ TARGETS=(
   libxml2 mbedtls openssl re2 woff2 zlib
 )
 
-echo "=== FuzzForge 12-library benchmark ==="
+echo "=== MAGIC4FDG 12-library benchmark ==="
 echo "Rounds: 5, Fuzz: 60s, Started: $(date)"
 echo ""
 

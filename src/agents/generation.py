@@ -64,7 +64,7 @@ def generation_node(state: PipelineState) -> dict:
     messages = list(state.get("messages", []))
     messages.append(f"[Generation] Starting round {round_num + 1} ({mode})")
 
-    max_workers = int(os.environ.get("FUZZFORGE_LLM_PARALLEL", os.environ.get("FUZZFORGE_PARALLEL", "10")))
+    max_workers = int(os.environ.get("MAGIC4FDG_LLM_PARALLEL", os.environ.get("MAGIC4FDG_PARALLEL", "10")))
 
     if not selections:
         return {"variants": [], "messages": messages}
@@ -143,9 +143,19 @@ def generation_node(state: PipelineState) -> dict:
         variants.append(variant)
         messages.append(f"[Generation] Generated {variant_id} ({len(source_code)} chars)")
 
+    # Detect fatal API errors (quota exhausted, auth failure) — abort pipeline
+    _FATAL_PATTERNS = ("insufficient_user_quota", "insufficient_quota", "403", "401", "authentication")
+    error_msgs = [em for _, _, _, _, _, em in results if em]
+    fatal_errors = [em for em in error_msgs if any(p in em.lower() for p in _FATAL_PATTERNS)]
+    fatal_error = ""
+    if fatal_errors and len(fatal_errors) == len(error_msgs) and len(error_msgs) == len(results):
+        fatal_error = f"All LLM calls failed with fatal error: {fatal_errors[0][:200]}"
+        print(f"[Generation] FATAL: {fatal_error}", flush=True)
+
     return {
         "variants": variants,
         "messages": messages,
+        "fatal_error": fatal_error,
     }
 
 

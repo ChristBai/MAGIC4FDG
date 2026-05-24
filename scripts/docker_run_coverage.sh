@@ -12,7 +12,7 @@ docker run --rm \
   -e "FUZZ_DICT=${FUZZ_DICT:-}" \
   -v "${ROOT_DIR}:/workspace" \
   -w /workspace \
-  fuzzforge:latest \
+  magic4fdg:latest \
   python3 src/generate_coverage_report.py \
     --target-config "${TARGET_CONFIG:-targets/cjson_parse.json}" \
     --fuzz-seconds "${FUZZ_SECONDS:-10}" \

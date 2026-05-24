@@ -44,5 +44,12 @@ mkdir -p "$PREFIX/src"
 cp "$SRC/"*.c "$SRC/"*.h "$PREFIX/src/" 2>/dev/null || true
 cp "$SRC/build/"*.h "$PREFIX/src/" 2>/dev/null || true
 
+# Collect seed corpus from library test data
+mkdir -p "$PREFIX/seed_corpus"
+find "$SRC" -path "*/testimages/*" \( -name "*.jpg" -o -name "*.jpeg" \) -size -100k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$SRC" -name "*.jpg" -size -100k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$SRC" -name "*.jpeg" -size -100k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+echo "[seed] Collected $(ls "$PREFIX/seed_corpus/" 2>/dev/null | wc -l) JPEG seed files"
+
 echo "=== libjpeg-turbo build complete ==="
 ls -la "$PREFIX/lib/libjpeg.a"

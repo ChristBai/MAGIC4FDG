@@ -47,6 +47,12 @@ ninja -C build install
 mkdir -p "$PREFIX/src"
 cp -r "$SRC/src/"*.cc "$SRC/src/"*.hh "$SRC/src/"*.h "$PREFIX/src/" 2>/dev/null || true
 
+# Collect seed corpus from library test data (font files)
+mkdir -p "$PREFIX/seed_corpus"
+find "$SRC" -path "*/test/*" \( -name "*.ttf" -o -name "*.otf" -o -name "*.ttc" \) -size -100k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$SRC" -path "*/perf/*" \( -name "*.ttf" -o -name "*.otf" \) -size -100k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+echo "[seed] Collected $(ls "$PREFIX/seed_corpus/" 2>/dev/null | wc -l) font seed files"
+
 # Ensure lib is at a fixed path regardless of architecture
 find "$PREFIX/lib" -name "libharfbuzz.a" -exec cp {} "$PREFIX/lib/libharfbuzz.a" \; 2>/dev/null || true
 

@@ -1,4 +1,4 @@
-"""LangGraph 状态图定义：FuzzForge v2 多 agent 流水线。
+"""LangGraph 状态图定义：MAGIC4FDG v2 多 agent 流水线。
 
 本文件定义 pipeline 的执行拓扑（DAG），是整个系统的"骨架"。
 每个节点是一个 agent 函数，接收 PipelineState、返回部分更新。
@@ -53,12 +53,17 @@ def _route_after_patching(state: PipelineState) -> str:
 def _route_after_analyst(state: PipelineState) -> str:
     """Supervisor 决策：判断是否继续迭代。
 
-    四个停止条件（任一满足即终止）：
-    1. 已达到目标覆盖率（项目级并集）
-    2. 已达到最大轮次
-    3. 全部 harness slot 已 converged（各自 plateau 后停止）
-    4. Pipeline 级 plateau >= 3（项目级覆盖率连续无提升）
+    五个停止条件（任一满足即终止）：
+    1. Fatal error（API quota exhausted, auth failure）
+    2. 已达到目标覆盖率（项目级并集）
+    3. 已达到最大轮次
+    4. 全部 harness slot 已 converged（各自 plateau 后停止）
+    5. Pipeline 级 plateau >= 3（项目级覆盖率连续无提升）
     """
+    if state.get("fatal_error"):
+        print(f"[Supervisor] Aborting: {state['fatal_error']}", flush=True)
+        return END
+
     best_coverage = state.get("best_coverage", 0.0)
     target_coverage = state.get("target_coverage", 100.0)
 

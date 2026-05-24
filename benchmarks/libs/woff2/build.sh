@@ -74,5 +74,12 @@ done
 mkdir -p "$WOFF2_PREFIX/src"
 cp "$WOFF2_SRC/src/"*.cc "$WOFF2_SRC/src/"*.h "$WOFF2_PREFIX/src/" 2>/dev/null || true
 
+# Collect seed corpus from library test data (woff2 font files)
+mkdir -p "$WOFF2_PREFIX/seed_corpus"
+find "$WOFF2_SRC" -name "*.woff2" -size -100k -exec cp {} "$WOFF2_PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$WOFF2_SRC" -name "*.ttf" -size -100k -exec cp {} "$WOFF2_PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$BROTLI_SRC" -path "*/tests/*" -type f -size -100k -exec cp {} "$WOFF2_PREFIX/seed_corpus/" \; 2>/dev/null || true
+echo "[seed] Collected $(ls "$WOFF2_PREFIX/seed_corpus/" 2>/dev/null | wc -l) woff2 seed files"
+
 echo "=== woff2 build complete ==="
 ls -la "$WOFF2_PREFIX/lib/libwoff2"*.a

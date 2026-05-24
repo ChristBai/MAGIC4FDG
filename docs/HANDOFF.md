@@ -1,4 +1,4 @@
-# FuzzForge v2 重构交接文档
+# MAGIC4FDG v2 重构交接文档
 
 > 生成时间: 2026-05-20（最后更新: 2026-05-22）
 > 分支: main
@@ -9,7 +9,7 @@
 ## 1. 项目目标
 
 ### 最终目标
-毕设项目：构建一个覆盖率引导的多 Agent 模糊测试驱动生成系统（FuzzForge），通过细粒度覆盖率反馈闭环，自动为 C/C++ 库生成高覆盖率的 LibFuzzer fuzz driver。区别于 PromptFuzz/CKGFuzzer 的核心创新点是迭代式覆盖率反馈 + 多策略探索。
+毕设项目：构建一个覆盖率引导的多 Agent 模糊测试驱动生成系统（MAGIC4FDG），通过细粒度覆盖率反馈闭环，自动为 C/C++ 库生成高覆盖率的 LibFuzzer fuzz driver。区别于 PromptFuzz/CKGFuzzer 的核心创新点是迭代式覆盖率反馈 + 多策略探索。
 
 ### 当前正在解决的核心问题
 v1 架构（Research → Generation × N → Patching → Coverage → Refinement）在 12 库实验中暴露严重问题：
@@ -76,7 +76,7 @@ v1 架构（Research → Generation × N → Patching → Coverage → Refinemen
 
 ### 分支/目录
 - 分支: `main`
-- 工作目录: `/Users/christbai/Documents/New project/FuzzForge`
+- 工作目录: `/Users/christbai/Documents/New project/MAGIC4FDG`
 - **所有修改均未提交**
 
 ### 已修改文件 (git tracked)
@@ -222,9 +222,9 @@ python3 -m src.pipeline.supervisor --target-config targets/cjson.json --max-roun
 
 ### 如何复现
 ```bash
-cd "/Users/christbai/Documents/New project/FuzzForge"
-# 确保 Docker 运行且 fuzzforge:latest 镜像存在
-docker images fuzzforge:latest
+cd "/Users/christbai/Documents/New project/MAGIC4FDG"
+# 确保 Docker 运行且 magic4fdg:latest 镜像存在
+docker images magic4fdg:latest
 # 运行 pipeline
 PYTHONUNBUFFERED=1 .venv/bin/python3 -m src.pipeline.supervisor \
   --target-config targets/cjson.json --max-rounds 5 --target-coverage 100 --fuzz-seconds 60

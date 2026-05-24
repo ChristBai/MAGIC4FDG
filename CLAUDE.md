@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Project Does
 
-FuzzForge v2: Coverage-guided multi-agent fuzz driver generation for C/C++ libraries. Uses LangGraph to orchestrate 7 specialized agents (Knowledge, Planner, Generation, Patching, Coverage, Checkpoint, Analyst) that iteratively generate, compile-fix, and improve LibFuzzer fuzz drivers based on fine-grained coverage feedback.
+MAGIC4FDG v2: Coverage-guided multi-agent fuzz driver generation for C/C++ libraries. Uses LangGraph to orchestrate 7 specialized agents (Knowledge, Planner, Generation, Patching, Coverage, Checkpoint, Analyst) that iteratively generate, compile-fix, and improve LibFuzzer fuzz drivers based on fine-grained coverage feedback.
 
 Core design: **Explore → Exploit**. Round 1 uses LLM scene reasoning to allocate harness slots with matched strategies (explore), Round 2+ incrementally improves each slot using Analyst constraints (exploit).
 
@@ -118,7 +118,7 @@ generated/checkpoints/<library_name>/round_<N>.json
 ```
 
 ### Docker
-Ubuntu 22.04 with clang/llvm/lld (image: `fuzzforge:latest`). Orchestrator runs on host; ALL execution (Knowledge/compile/fuzz/coverage) in container.
+Ubuntu 22.04 with clang/llvm/lld (image: `magic4fdg:latest`). Orchestrator runs on host; ALL execution (Knowledge/compile/fuzz/coverage) in container.
 
 **Build cache**: Knowledge container builds library → caches artifacts to `generated/build_cache/<lib>/` → subsequent compile/fuzz containers mount cache as `/opt/bench:ro` (skip rebuild).
 

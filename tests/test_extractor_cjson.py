@@ -1,6 +1,6 @@
 """Integration test for knowledge extractor against cJSON library.
 
-Requires: Docker running with fuzzforge:latest image.
+Requires: Docker running with magic4fdg:latest image.
 Run: python3 -m pytest tests/test_extractor_cjson.py -v
 """
 from __future__ import annotations
@@ -23,7 +23,7 @@ def docker_available() -> bool:
     import subprocess
     try:
         r = subprocess.run(
-            ["docker", "images", "fuzzforge:latest", "-q"],
+            ["docker", "images", "magic4fdg:latest", "-q"],
             capture_output=True, text=True, timeout=5,
         )
         return bool(r.stdout.strip())
@@ -31,7 +31,7 @@ def docker_available() -> bool:
         return False
 
 
-@unittest.skipUnless(docker_available(), "Docker or fuzzforge image not available")
+@unittest.skipUnless(docker_available(), "Docker or magic4fdg image not available")
 class TestExtractorCJSON(unittest.TestCase):
     knowledge = None
     elapsed = 0.0

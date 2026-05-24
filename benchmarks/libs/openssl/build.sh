@@ -50,6 +50,13 @@ mkdir -p "$PREFIX/src"
 cp "$SRC/crypto/"*.c "$PREFIX/src/" 2>/dev/null || true
 cp "$SRC/ssl/"*.c "$PREFIX/src/" 2>/dev/null || true
 
+# Collect seed corpus from library test data (certificates, keys, test vectors)
+mkdir -p "$PREFIX/seed_corpus"
+find "$SRC" -path "*/test/certs/*" \( -name "*.pem" -o -name "*.der" \) -size -50k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$SRC" -path "*/test/*" -name "*.cnf" -size -50k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$SRC" -path "*/fuzz/corpora/*" -type f -size -50k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+echo "[seed] Collected $(ls "$PREFIX/seed_corpus/" 2>/dev/null | wc -l) openssl seed files"
+
 echo "=== openssl build complete ==="
 ls -la "$PREFIX/lib64/libcrypto.a" "$PREFIX/lib64/libssl.a" 2>/dev/null || \
 ls -la "$PREFIX/lib/libcrypto.a" "$PREFIX/lib/libssl.a" 2>/dev/null

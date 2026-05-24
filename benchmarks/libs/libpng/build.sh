@@ -66,5 +66,13 @@ make install
 mkdir -p "$PNG_PREFIX/src"
 cp "$PNG_SRC/"*.c "$PNG_SRC/"*.h "$PNG_PREFIX/src/" 2>/dev/null || true
 
+# Collect seed corpus from library test data
+mkdir -p "$PNG_PREFIX/seed_corpus"
+find "$PNG_SRC" -path "*/contrib/testpngs/*" -name "*.png" -exec cp {} "$PNG_PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$PNG_SRC" -path "*/contrib/pngsuite/*" -name "*.png" -exec cp {} "$PNG_PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$PNG_SRC" -path "*/tests/*" -name "*.png" -exec cp {} "$PNG_PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$PNG_SRC" -name "*.png" -size -100k -exec cp {} "$PNG_PREFIX/seed_corpus/" \; 2>/dev/null || true
+echo "[seed] Collected $(ls "$PNG_PREFIX/seed_corpus/" 2>/dev/null | wc -l) PNG seed files"
+
 echo "=== libpng build complete ==="
 ls -la "$PNG_PREFIX/lib/libpng"*.a "$ZLIB_PREFIX/lib/libz.a"

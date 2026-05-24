@@ -71,6 +71,13 @@ make install
 mkdir -p "$RE2_PREFIX/src"
 cp "$RE2_SRC/re2/"*.cc "$RE2_SRC/re2/"*.h "$RE2_PREFIX/src/" 2>/dev/null || true
 
+# Collect seed corpus from library test data (regex patterns from test files)
+mkdir -p "$RE2_PREFIX/seed_corpus"
+grep -hroP '"[^"]{1,200}"' "$RE2_SRC/re2/testing/"*.cc 2>/dev/null | sort -u | head -100 | while read -r line; do
+  echo -n "$line" | tr -d '"' > "$RE2_PREFIX/seed_corpus/regex_$(echo "$line" | md5sum | cut -c1-8)"
+done 2>/dev/null || true
+echo "[seed] Collected $(ls "$RE2_PREFIX/seed_corpus/" 2>/dev/null | wc -l) regex seed files"
+
 # Merge all abseil static libs into one for simpler linking
 mkdir -p /tmp/absl_objs
 cd /tmp/absl_objs

@@ -1,4 +1,4 @@
-"""流水线状态定义：FuzzForge v2 的数据字典。
+"""流水线状态定义：MAGIC4FDG v2 的数据字典。
 
 所有 agent 之间通过一个共享的 state 字典通信，本文件定义 state 中
 每个字段的类型和含义。
@@ -207,6 +207,10 @@ class PipelineState(TypedDict):
 
     # === 运行配置 ===
     fuzz_seconds: int           # 每个变体 fuzzing 时长（秒）
+    temperature: float          # LLM 温度参数
+
+    # === 错误处理 ===
+    fatal_error: str            # 致命错误（quota exhausted 等），非空时终止 pipeline
 
     # === Checkpoint ===
     checkpoint_dir: str         # checkpoint 保存目录

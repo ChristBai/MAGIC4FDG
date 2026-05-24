@@ -45,5 +45,12 @@ make install
 mkdir -p "$PREFIX/src"
 cp "$SRC/"*.c "$SRC/"*.h "$PREFIX/src/" 2>/dev/null || true
 
+# Collect seed corpus from library test data
+mkdir -p "$PREFIX/seed_corpus"
+find "$SRC" -path "*/tests/*" -name "*.pcap" -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$SRC" -path "*/testprogs/*" -name "*.pcap" -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$SRC" -name "*.pcap" -size -100k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+echo "[seed] Collected $(ls "$PREFIX/seed_corpus/" 2>/dev/null | wc -l) pcap seed files"
+
 echo "=== libpcap build complete ==="
 ls -la "$PREFIX/lib/libpcap.a"

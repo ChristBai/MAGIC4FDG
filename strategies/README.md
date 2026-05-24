@@ -1,4 +1,4 @@
-# FuzzForge Strategy Library
+# MAGIC4FDG Strategy Library
 
 This directory contains the strategy library for fuzz driver generation. Each `.md` file defines a distinct harness generation strategy that the Planner agent can select from.
 

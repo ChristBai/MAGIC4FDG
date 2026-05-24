@@ -55,7 +55,7 @@ def analyst_node(state: PipelineState) -> dict:
     updated_knowledge = dict(knowledge)
     slot_knowledge = dict(updated_knowledge.get("slot_knowledge", {}))
 
-    max_workers = int(os.environ.get("FUZZFORGE_LLM_PARALLEL", os.environ.get("FUZZFORGE_PARALLEL", "10")))
+    max_workers = int(os.environ.get("MAGIC4FDG_LLM_PARALLEL", os.environ.get("MAGIC4FDG_PARALLEL", "10")))
 
     def _analyze_one(slot):
         analysis = _analyze_single_slot(slot, knowledge, target_config, source_context)

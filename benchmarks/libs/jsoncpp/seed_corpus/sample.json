@@ -1,5 +1,5 @@
 {
-  "name": "FuzzForge",
+  "name": "MAGIC4FDG",
   "version": 1,
   "enabled": true,
   "tags": ["fuzzing", "coverage", "llm"],

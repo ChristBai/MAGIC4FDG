@@ -48,5 +48,13 @@ mkdir -p "$PREFIX/src"
 cp "$SRC/"*.c "$SRC/"*.h "$PREFIX/src/" 2>/dev/null || true
 cp "$SRC/include/libxml/"*.h "$PREFIX/src/" 2>/dev/null || true
 
+# Collect seed corpus from library test data
+mkdir -p "$PREFIX/seed_corpus"
+find "$SRC" -path "*/test/*" -name "*.xml" -size -50k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$SRC" -path "*/result/*" -name "*.xml" -size -50k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$SRC" -name "*.html" -size -50k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$SRC" -name "*.dtd" -size -50k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+echo "[seed] Collected $(ls "$PREFIX/seed_corpus/" 2>/dev/null | wc -l) XML seed files"
+
 echo "=== libxml2 build complete ==="
 ls -la "$PREFIX/lib/libxml2.a"

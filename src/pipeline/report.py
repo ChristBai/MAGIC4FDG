@@ -31,7 +31,7 @@ def generate_report(state: dict) -> str:
     library_name = target_config.get("library_name", "unknown")
 
     lines = [
-        f"# FuzzForge Report: {library_name}",
+        f"# MAGIC4FDG Report: {library_name}",
         "",
         f"**Generated**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}",
         f"**Library**: `{library_name}`",

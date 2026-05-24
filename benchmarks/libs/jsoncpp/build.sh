@@ -47,5 +47,11 @@ mkdir -p "$PREFIX/src"
 cp "$SRC/src/lib_json/"*.cpp "$PREFIX/src/"
 cp "$SRC/include/json/"*.h "$PREFIX/src/" 2>/dev/null || true
 
+# Collect seed corpus from library test data
+mkdir -p "$PREFIX/seed_corpus"
+find "$SRC" -path "*/test/*" -name "*.json" -size -50k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$SRC" -path "*/data/*" -name "*.json" -size -50k -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+echo "[seed] Collected $(ls "$PREFIX/seed_corpus/" 2>/dev/null | wc -l) JSON seed files"
+
 echo "=== jsoncpp build complete ==="
 ls -la "$PREFIX/lib/libjsoncpp.a" 2>/dev/null || ls -la "$PREFIX/lib64/libjsoncpp.a" 2>/dev/null || ls "$PREFIX/lib/"

@@ -3,4 +3,4 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-docker build -t fuzzforge:latest "${ROOT_DIR}"
+docker build -t magic4fdg:latest "${ROOT_DIR}"

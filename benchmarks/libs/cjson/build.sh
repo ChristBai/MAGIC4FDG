@@ -43,5 +43,11 @@ make install
 mkdir -p "$PREFIX/src"
 cp "$SRC/cJSON.c" "$SRC/cJSON.h" "$PREFIX/src/"
 
+# Collect seed corpus from library test data
+mkdir -p "$PREFIX/seed_corpus"
+find "$SRC" -path "*/tests/*" -name "*.json" -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+find "$SRC" -path "*/test*" -name "*.json" -exec cp {} "$PREFIX/seed_corpus/" \; 2>/dev/null || true
+echo "[seed] Collected $(ls "$PREFIX/seed_corpus/" 2>/dev/null | wc -l) JSON seed files"
+
 echo "=== cjson build complete ==="
 ls -la "$PREFIX/lib/libcjson.a"

@@ -1,6 +1,6 @@
 """朴素基线：单次 LLM 生成 fuzz driver（无迭代、无覆盖率反馈）。
 
-作为对照组，与 FuzzForge 多 agent 流水线进行基准对比。
+作为对照组，与 MAGIC4FDG 多 agent 流水线进行基准对比。
 流程：读取头文件 → 单次 LLM 生成 → 编译 → fuzz → 测量覆盖率。
 
 用法：

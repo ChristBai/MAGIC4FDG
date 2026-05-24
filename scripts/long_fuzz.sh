@@ -1,5 +1,5 @@
 #!/bin/bash
-# Long-time fuzzing script for FuzzForge best_drivers.
+# Long-time fuzzing script for MAGIC4FDG best_drivers.
 # Standalone — reads pipeline output, does not import pipeline code.
 #
 # Usage: ./scripts/long_fuzz.sh <target_config> [fuzz_hours] [parallel_jobs]
@@ -11,7 +11,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-DOCKER_IMAGE="${DOCKER_IMAGE:-fuzzforge:latest}"
+DOCKER_IMAGE="${DOCKER_IMAGE:-magic4fdg:latest}"
 DOCKER_MEMORY="${DOCKER_MEMORY:-4g}"
 DOCKER_CPUS="${DOCKER_CPUS:-2}"
 
