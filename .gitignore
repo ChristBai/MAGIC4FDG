@@ -25,3 +25,5 @@ dev/
 
 # Thesis (large LaTeX/PDF files)
 docs/thesis/
+slow-unit-*
+test_write.txt
