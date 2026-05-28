@@ -194,10 +194,21 @@ def save_report(state: dict, out_dir: Path | None = None) -> Path:
             "line_covered": state.get("union_line_covered", 0),
             "line_total": state.get("union_line_total", 0),
             "line_pct": state.get("best_coverage", 0.0),
-            "branch_pct": max(
-                (v.get("branch_coverage_pct", 0.0) for v in (state.get("all_variants", []) or state.get("variants", [])) if v.get("compile_status") == "ok"),
-                default=0.0,
+            "branch_covered": state.get("union_branch_covered", 0),
+            "branch_total": state.get("union_branch_total", 0),
+            "branch_pct": (
+                100.0 * state.get("union_branch_covered", 0) / state.get("union_branch_total", 1)
+                if state.get("union_branch_total", 0) > 0
+                else 0.0
             ),
+        },
+        "best_drivers": {
+            slot.get("slot_id", ""): {
+                "coverage_pct": slot.get("best_coverage", 0.0),
+                "branch_coverage_pct": slot.get("best_branch_coverage", 0.0),
+            }
+            for slot in state.get("harness_slots", [])
+            if slot.get("best_source")
         },
         "variants": [
             {

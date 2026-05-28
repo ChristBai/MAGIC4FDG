@@ -26,7 +26,7 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from src.infra.docker_runner import run_fuzz_with_coverage, _docker_run
+from src.infra.docker_runner import run_fuzz_with_coverage, run_union_coverage, _docker_run
 from src.pipeline.state import DriverVariant, PipelineState
 from src.config import ROOT, resolve_project_path
 
@@ -368,17 +368,25 @@ def coverage_node(state: PipelineState) -> dict:
         else:
             slot["plateau_count"] = slot.get("plateau_count", 0) + 1
 
-    # 项目级覆盖率：所有 slot 覆盖行的并集
-    union_stats = _aggregate_project_coverage(covered_variants)
-    project_coverage = union_stats["line_pct"]
-    if project_coverage < prev_best:
-        project_coverage = prev_best
-
-    # 收集每个 slot 的 best driver，组成 driver 集合
+    # 项目级覆盖率：用 llvm-profdata merge 测量所有 best drivers 的真实 union
     best_drivers: dict[str, str] = dict(state.get("best_drivers", {}))
     for slot in slots:
         if slot.get("best_source"):
             best_drivers[slot["slot_id"]] = slot["best_source"]
+
+    union_stats: dict = {}
+    if best_drivers:
+        print(f"[Coverage] Measuring union coverage for {len(best_drivers)} best drivers...", flush=True)
+        union_stats = run_union_coverage(best_drivers, target_config)
+        if "error" in union_stats:
+            print(f"[Coverage] Union measurement failed: {union_stats['error']}, using fallback", flush=True)
+            union_stats = _aggregate_project_coverage(covered_variants)
+    else:
+        union_stats = _aggregate_project_coverage(covered_variants)
+
+    project_coverage = union_stats.get("line_pct", 0.0)
+    if project_coverage < prev_best:
+        project_coverage = prev_best
 
     # best_driver 保留兼容：取覆盖率最高的单个变体
     best_variant = max(
@@ -397,8 +405,8 @@ def coverage_node(state: PipelineState) -> dict:
 
     messages.append(
         f"[Coverage] Project coverage: {project_coverage:.1f}% "
-        f"(lines: {union_stats['line_covered']}/{union_stats['line_total']}, "
-        f"branch: {union_stats['branch_pct']:.1f}%, plateau={plateau_count})"
+        f"(lines: {union_stats.get('line_covered', 0)}/{union_stats.get('line_total', 0)}, "
+        f"branch: {union_stats.get('branch_pct', 0.0):.1f}%, plateau={plateau_count})"
     )
 
     # 累积所有轮次的 variant 到 all_variants
@@ -413,10 +421,10 @@ def coverage_node(state: PipelineState) -> dict:
         "best_driver": best_driver,
         "best_drivers": best_drivers,
         "coverage_plateau_count": plateau_count,
-        "union_line_covered": union_stats["line_covered"],
-        "union_line_total": union_stats["line_total"],
-        "union_branch_covered": 0,
-        "union_branch_total": 0,
+        "union_line_covered": union_stats.get("line_covered", 0),
+        "union_line_total": union_stats.get("line_total", 0),
+        "union_branch_covered": union_stats.get("branch_covered", 0),
+        "union_branch_total": union_stats.get("branch_total", 0),
         "messages": messages,
     }
 

@@ -30,20 +30,32 @@ GENERATION_TEMPLATE = (Path(__file__).resolve().parents[2] / "prompts" / "genera
     encoding="utf-8"
 )
 
+# Pre-cache all strategy files at import time to avoid repeated file I/O
+# (mitigates macOS Docker VirtioFS/gRPC FUSE deadlock on bind-mounted dirs)
+_STRATEGY_CACHE: dict[str, str] = {}
 
-def _load_strategy_suffix(strategy_id: str) -> str:
-    """根据策略 ID 加载策略文件正文（frontmatter 之后的部分），作为 prompt 后缀。"""
+
+def _init_strategy_cache() -> None:
+    """一次性加载所有策略文件到内存。"""
     for f in STRATEGIES_DIR.glob("*.md"):
         if f.name == "README.md":
             continue
         content = f.read_text(encoding="utf-8")
-        # Check if this file matches the strategy_id
-        if f"id: {strategy_id}" in content[:500]:
-            # Return body after frontmatter
+        # Extract strategy_id from frontmatter
+        id_start = content.find("id: ")
+        if id_start >= 0 and id_start < 500:
+            id_line = content[id_start + 4:content.find("\n", id_start)].strip()
             end = content.find("---", 3)
-            if end > 0:
-                return content[end + 3:].strip()
-    return ""
+            body = content[end + 3:].strip() if end > 0 else ""
+            _STRATEGY_CACHE[id_line] = body
+
+
+_init_strategy_cache()
+
+
+def _load_strategy_suffix(strategy_id: str) -> str:
+    """从内存缓存中获取策略 prompt 后缀。"""
+    return _STRATEGY_CACHE.get(strategy_id, "")
 
 
 def generation_node(state: PipelineState) -> dict:

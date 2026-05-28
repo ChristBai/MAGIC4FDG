@@ -37,16 +37,24 @@ def _docker_run(
     run_id: str = "",
     extra_volumes: list[str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    """在 Docker 容器中执行命令，挂载 workspace。"""
+    """在 Docker 容器中执行命令，挂载最小必要目录。
+
+    只挂载 Docker 实际需要的子目录，避免整个项目目录被 Docker 文件共享锁定
+    （macOS VirtioFS/gRPC FUSE 死锁问题）。
+    """
     uid = run_id or f"{os.getpid()}-{threading.get_ident()}"
     container_name = f"magic4fdg-{uid}"[:63]
     mem_limit = memory or os.environ.get("DOCKER_MEMORY", "2g")
+    generated_dir = ROOT / "generated"
+    generated_dir.mkdir(parents=True, exist_ok=True)
     docker_cmd = [
         "docker", "run", "--rm",
         "--name", container_name,
         "--memory", mem_limit,
         "--cpus", os.environ.get("DOCKER_CPUS", "2"),
-        "-v", f"{ROOT}:/workspace",
+        "-v", f"{generated_dir}:/workspace/generated",
+        "-v", f"{ROOT / 'benchmarks'}:/workspace/benchmarks:ro",
+        "-v", f"{ROOT / 'targets'}:/workspace/targets:ro",
         "-w", "/workspace",
     ]
     proxy = os.environ.get("DOCKER_PROXY", "http://host.docker.internal:7897")
@@ -600,3 +608,218 @@ def _parse_function_report(report_text: str) -> list[dict]:
                 "line_cover": m.group(8),
             })
     return functions
+
+
+# =============================================================================
+# Union 覆盖率：合并多个 driver 的 profdata 测量真实并集覆盖率
+# =============================================================================
+
+def run_union_coverage(
+    drivers: dict[str, str],
+    target_config: dict,
+    fuzz_seconds: int = 0,
+) -> dict:
+    """测量多个 driver 的合并覆盖率（真实 union）。
+
+    对每个 driver：编译（带 coverage instrumentation）→ replay accumulated corpus → 收集 profraw。
+    然后合并所有 profdata，用 llvm-cov export 导出真实 union 覆盖率。
+
+    Args:
+        drivers: slot_id → source_code
+        target_config: 目标库配置
+        fuzz_seconds: 若 >0 则先 fuzz 再 replay；0 表示只 replay 已有 corpus
+
+    Returns:
+        {"line_pct", "line_covered", "line_total", "branch_pct", "branch_covered", "branch_total", "error"?}
+    """
+    if not drivers:
+        return {"line_pct": 0.0, "line_covered": 0, "line_total": 0,
+                "branch_pct": 0.0, "branch_covered": 0, "branch_total": 0}
+
+    library_name = target_config.get("library_name", "target")
+    source_files = target_config.get("source_files", [])
+    include_dirs = target_config.get("include_dirs", [])
+    static_libs = target_config.get("static_libs", [])
+    link_flags = target_config.get("link_flags", [])
+    coverage_sources = target_config.get("coverage_sources", [])
+    build_command = target_config.get("build_command", "")
+
+    include_args = " ".join(f'-I"{d}"' for d in include_dirs)
+    source_list = " ".join(f'"{s}"' for s in source_files)
+    static_libs_str = " ".join(f'"{s}"' for s in static_libs)
+    link_flags_str = " ".join(link_flags)
+    cov_sources = " ".join(f'"{s}"' for s in coverage_sources) if coverage_sources else source_list
+    accumulated_corpus_dir = f"generated/accumulated_corpus/{library_name}"
+
+    extra_volumes, cache_hit = _get_build_cache_volumes(target_config)
+
+    build_step = ""
+    build_include_discovery = ""
+    if cache_hit:
+        build_include_discovery = 'BUILD_INCLUDES=$(find /opt/bench -type d -name "include" 2>/dev/null | sed "s/^/-I/" | tr "\\n" " ")'
+    elif build_command:
+        build_step = f'bash "{build_command}" > /tmp/build_lib.log 2>&1'
+        build_include_discovery = 'BUILD_INCLUDES=$(find /opt/bench -type d -name "include" 2>/dev/null | sed "s/^/-I/" | tr "\\n" " ")'
+
+    # Write each driver to generated/union_*.cpp
+    driver_files: list[str] = []
+    for slot_id, source_code in drivers.items():
+        fname = f"union_{slot_id}.cpp"
+        fpath = ROOT / "generated" / fname
+        fpath.write_text(source_code, encoding="utf-8")
+        _clear_xattr(fpath)
+        driver_files.append(fname)
+
+    # Build compile + replay script for each driver
+    compile_blocks = []
+    replay_blocks = []
+    for i, fname in enumerate(driver_files):
+        compile_blocks.append(f"""
+# Compile driver {i}: {fname}
+$CXX -std=c++17 $COMMON_FLAGS {include_args} $BUILD_INCLUDES \\
+    $OBJECTS "generated/{fname}" {static_libs_str} {link_flags_str} \\
+    -fsanitize=fuzzer,address -o /tmp/fuzz_union_{i} 2>&1
+if [ $? -ne 0 ]; then echo "COMPILE_FAIL_{i}"; fi
+""")
+        replay_blocks.append(f"""
+# Replay corpus with driver {i}
+if [ -f /tmp/fuzz_union_{i} ]; then
+    export LLVM_PROFILE_FILE=/tmp/union_{i}_%m.profraw
+    /tmp/fuzz_union_{i} /tmp/corpus -runs=0 2>&1 || true
+fi
+""")
+
+    script = f"""#!/bin/bash
+set -e
+CXX="${{CXX:-clang++}}"
+CC="${{CC:-clang}}"
+LLVM_PROFDATA="${{LLVM_PROFDATA:-llvm-profdata}}"
+LLVM_COV="${{LLVM_COV:-llvm-cov}}"
+
+COMMON_FLAGS="-g -O1 -fprofile-instr-generate -fcoverage-mapping -fsanitize=address"
+
+# Build library
+{build_step}
+{build_include_discovery}
+
+# Compile source objects
+SOURCES=({source_list})
+OBJECTS=""
+for src in "${{SOURCES[@]}}"; do
+    [ -z "$src" ] && continue
+    obj="/tmp/$(basename "$src").o"
+    if [[ "$src" == *.c ]]; then
+        $CC $COMMON_FLAGS {include_args} $BUILD_INCLUDES -c "$src" -o "$obj" 2>&1
+    else
+        $CXX -std=c++17 $COMMON_FLAGS {include_args} $BUILD_INCLUDES -c "$src" -o "$obj" 2>&1
+    fi
+    OBJECTS="$OBJECTS $obj"
+done
+
+# Compile all drivers
+{"".join(compile_blocks)}
+
+echo "BUILD_OK"
+
+# Prepare corpus (accumulated from all prior rounds)
+mkdir -p /tmp/corpus
+cp -r {accumulated_corpus_dir}/* /tmp/corpus/ 2>/dev/null || true
+
+# Replay corpus with each driver
+export ASAN_OPTIONS=halt_on_error=0:exitcode=0:detect_leaks=0
+{"".join(replay_blocks)}
+
+# Merge all profraw files
+$LLVM_PROFDATA merge -sparse /tmp/union_*.profraw -o /tmp/union_merged.profdata 2>/dev/null
+if [ $? -ne 0 ]; then
+    echo "PROFDATA_MERGE_FAIL"
+    exit 1
+fi
+
+# Export union coverage (use first successfully compiled binary for coverage mapping)
+FIRST_BIN=""
+for i in $(seq 0 {len(driver_files) - 1}); do
+    if [ -f /tmp/fuzz_union_$i ]; then
+        FIRST_BIN="/tmp/fuzz_union_$i"
+        break
+    fi
+done
+
+if [ -z "$FIRST_BIN" ]; then
+    echo "NO_BINARY"
+    exit 1
+fi
+
+$LLVM_COV export $FIRST_BIN \\
+    -instr-profile=/tmp/union_merged.profdata \\
+    -skip-expansions -skip-functions \\
+    {cov_sources} > generated/union_coverage.json
+
+echo "UNION_OK"
+"""
+
+    script_path = ROOT / "generated" / "run_union_coverage.sh"
+    script_path.write_text(script, encoding="utf-8")
+    _clear_xattr(script_path)
+
+    cov_timeout = 120 if cache_hit else (1200 if build_command else 600)
+    try:
+        result = _docker_run(
+            ["bash", "generated/run_union_coverage.sh"],
+            timeout=cov_timeout,
+            run_id=f"union-cov-{library_name}",
+            extra_volumes=extra_volumes,
+        )
+    except subprocess.TimeoutExpired:
+        script_path.unlink(missing_ok=True)
+        return {"line_pct": 0.0, "line_covered": 0, "line_total": 0,
+                "branch_pct": 0.0, "branch_covered": 0, "branch_total": 0,
+                "error": "Union coverage timed out"}
+
+    combined_output = result.stdout + result.stderr
+    script_path.unlink(missing_ok=True)
+    for fname in driver_files:
+        (ROOT / "generated" / fname).unlink(missing_ok=True)
+
+    if "BUILD_OK" not in combined_output:
+        return {"line_pct": 0.0, "line_covered": 0, "line_total": 0,
+                "branch_pct": 0.0, "branch_covered": 0, "branch_total": 0,
+                "error": f"Union build failed: {combined_output[-500:]}"}
+
+    report_path = ROOT / "generated" / "union_coverage.json"
+    if not report_path.exists() or "UNION_OK" not in combined_output:
+        return {"line_pct": 0.0, "line_covered": 0, "line_total": 0,
+                "branch_pct": 0.0, "branch_covered": 0, "branch_total": 0,
+                "error": f"Union coverage export failed: {combined_output[-500:]}"}
+
+    raw_text = report_path.read_text(encoding="utf-8").strip()
+    report_path.unlink(missing_ok=True)
+    if not raw_text:
+        return {"line_pct": 0.0, "line_covered": 0, "line_total": 0,
+                "branch_pct": 0.0, "branch_covered": 0, "branch_total": 0,
+                "error": "Union coverage export empty"}
+
+    export_data = json.loads(raw_text)
+    data_items = export_data.get("data") or []
+    if not data_items:
+        return {"line_pct": 0.0, "line_covered": 0, "line_total": 0,
+                "branch_pct": 0.0, "branch_covered": 0, "branch_total": 0,
+                "error": "No data in union export"}
+
+    totals = data_items[0].get("totals", {})
+    lines = totals.get("lines", {})
+    branches = totals.get("branches", {})
+
+    line_count = lines.get("count", 0)
+    line_covered = lines.get("covered", 0)
+    branch_count = branches.get("count", 0)
+    branch_covered = branches.get("covered", 0)
+
+    return {
+        "line_pct": (100.0 * line_covered / line_count) if line_count else 0.0,
+        "line_covered": line_covered,
+        "line_total": line_count,
+        "branch_pct": (100.0 * branch_covered / branch_count) if branch_count else 0.0,
+        "branch_covered": branch_covered,
+        "branch_total": branch_count,
+    }

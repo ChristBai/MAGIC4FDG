@@ -160,8 +160,15 @@ def _save_results(state: dict, config: dict) -> None:
     print(f"  Variants compiled: {compiled}/{len(all_v)} (all rounds)")
     union_lc = state.get("union_line_covered", 0)
     union_lt = state.get("union_line_total", 0)
+    union_bc = state.get("union_branch_covered", 0)
+    union_bt = state.get("union_branch_total", 0)
     if union_lt:
-        print(f"  Union lines: {union_lc}/{union_lt}")
+        print(f"  Union lines: {union_lc}/{union_lt} ({100.0*union_lc/union_lt:.1f}%)")
+    if union_bt:
+        print(f"  Union branches: {union_bc}/{union_bt} ({100.0*union_bc/union_bt:.1f}%)")
+    best_drivers = state.get("best_drivers", {})
+    if best_drivers:
+        print(f"  Best driver combination: {len(best_drivers)} drivers")
     token_usage = state.get("token_usage", {})
     if token_usage.get("total_tokens"):
         print(f"  Tokens used: {token_usage['total_tokens']:,} (prompt: {token_usage['total_prompt_tokens']:,}, completion: {token_usage['total_completion_tokens']:,})")
@@ -172,8 +179,9 @@ def _save_results(state: dict, config: dict) -> None:
 def _cleanup_temp_files() -> None:
     """清理 generated/ 目录下的中间临时文件。"""
     gen_dir = ROOT / "generated"
-    for pattern in ["patch_*.cpp", "cov_*.cpp", "compile_test.sh",
-                    "run_coverage.sh", "reachability_analysis.sh", "coverage_*.json"]:
+    for pattern in ["patch_*.cpp", "cov_*.cpp", "union_*.cpp", "compile_test.sh",
+                    "run_coverage.sh", "run_union_coverage.sh",
+                    "reachability_analysis.sh", "coverage_*.json", "union_coverage.json"]:
         for f in gen_dir.glob(pattern):
             f.unlink(missing_ok=True)
     for pattern in ["crash-*", "oom-*", "timeout-*"]:
