@@ -1,0 +1,27 @@
+# LaTeX compilation artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.log
+*.out
+*.run.xml
+*.thm
+*.toc
+*.synctex.gz
+*.synctex(busy)
+*.fls
+*.fdb_latexmk
+*.xdv
+
+# macOS duplicate files (numbered copies)
+*\ [0-9]*
+
+# Generated PDF (keep source .tex only)
+magic4fdg.pdf
+
+# OS files
+.DS_Store
+
+# Editor swap files
+*.crswap

@@ -1,0 +1,91 @@
+@startuml knowledge_class
+skinparam classAttributeIconSize 0
+skinparam classFontSize 16
+skinparam classAttributeFontSize 14
+skinparam nodesep 40
+skinparam ranksep 50
+skinparam dpi 300
+skinparam linetype ortho
+hide circle
+
+skinparam class {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+
+class extract_knowledge <<function>> {
+    + extract_knowledge(target_config): KnowledgeStore
+    - _extract_functions(ast, header): list[APIEntry]
+    - _extract_types(ast, header): list[dict]
+    - _extract_comments(ast): dict
+    - _extract_call_graph(ast): dict
+    - _parse_macros_text(raw): list[dict]
+    - _annotate_from_comments(entries, comments)
+    - _infer_ownership(entries)
+    - _infer_categories(entries)
+    - _extract_functions_regex(header, dirs): list[APIEntry]
+}
+
+class KnowledgeStore <<TypedDict>> {
+    + api_entries: list[APIEntry]
+    + call_graph: dict[str, list[str]]
+    + type_definitions: list[dict]
+    + macro_constants: list[dict]
+    + slot_knowledge: dict
+}
+
+class APIEntry <<TypedDict>> {
+    + name: str
+    + signature: str
+    + return_type: str
+    + params: list[dict]
+    + category: str
+    + preconditions: list[str]
+    + doc_comment: str
+}
+
+class ContextBuilder {
+    + build_planner_context(knowledge, slots, metadata): str
+    + build_generator_context(knowledge, selection, slot, slot_knowledge): str
+    + build_analyst_context(knowledge, uncovered_source): str
+}
+
+class GroupingEngine {
+    + group_apis(knowledge, max_groups): list[APIGroup]
+    + match_strategy(group, metadata): str
+    - _is_fuzzable(api): bool
+    - _cluster_by_context_type(apis): dict
+}
+
+class DockerRunner {
+    + build_and_extract(target_config): dict
+    - _build_knowledge_script(config): str
+    - _parse_knowledge_output(stdout): dict
+}
+
+class APIGroup <<TypedDict>> {
+    + group_id: str
+    + apis: list[str]
+    + context_type: str
+    + features: list[str]
+}
+
+' 布局
+extract_knowledge -[hidden]right- KnowledgeStore
+KnowledgeStore -[hidden]right- APIEntry
+ContextBuilder -[hidden]right- GroupingEngine
+DockerRunner -[hidden]right- APIGroup
+
+extract_knowledge -[hidden]down- ContextBuilder
+KnowledgeStore -[hidden]down- GroupingEngine
+
+' 关系
+extract_knowledge ..> DockerRunner : 调用
+extract_knowledge ..> KnowledgeStore : 生成
+KnowledgeStore *-right- "0..*" APIEntry
+ContextBuilder ..> KnowledgeStore : 读取
+GroupingEngine ..> KnowledgeStore : 读取
+GroupingEngine ..> APIGroup : 生成
+
+@enduml

@@ -1,0 +1,213 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% njuthesis 示例模板 v1.4.3 2025-05-21
+% https://github.com/nju-lug/NJUThesis
+%
+% 贡献者
+% Yu XIONG @atxy-blip   Yichen ZHAO @FengChendian
+% Song GAO @myandeg     Chang MA @glatavento
+% Yilun SUN @HermitSun  Yinfeng LIN @linyinfeng
+% Yukai Chou @Muzimuzhi
+%
+% 许可证
+% LaTeX Project Public License（版本 1.3c 或更高）
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%---------------------------------------------------------------------
+% 一些提升使用体验的小技巧：
+%   1. 请务必使用 UTF-8 编码编写和保存本文档
+%   2. 请务必使用 XeLaTeX 或 LuaLaTeX 引擎进行编译
+%   3. 不保证接口稳定，写作前一定要留意版本号
+%   4. 以百分号(%)开头的内容为注释，可以随意删除
+%---------------------------------------------------------------------
+
+%---------------------------------------------------------------------
+% 请先阅读使用手册：
+% http://mirrors.ctan.org/macros/unicodetex/latex/njuthesis/njuthesis.pdf
+%---------------------------------------------------------------------
+
+\documentclass[
+    % 模板选项(注意右端逗号)：
+    %
+    % type = bachelor|master|doctor|postdoc, % 文档类型，默认为本科生
+    % degree = academic|professional,        % 学位类型，默认为学术型
+    %
+    % nl-cover,   % 是否需要国家图书馆封面，默认关闭
+    % decl-page,  % 是否需要诚信承诺书或原创性声明，默认关闭
+    %
+    %   页面模式，详见手册说明
+    % draft,                  % 开启草稿模式
+    % anonymous,              % 开启盲审模式
+    % minimal,                % 开启最小化模式
+    %
+    %   单双面模式，默认为适合印刷的双面模式
+    % oneside,                % 单面模式，无空白页
+    % twoside,                % 双面模式，每一章从奇数页开始
+    %
+    %   字体设置，不填写则自动调用系统预装字体，详见手册
+    fontset = mac % |win|macoffice|fandol|none,
+  ]{njuthesis}
+
+% 模板选项设置，包括个人信息、外观样式等
+% 较为冗长且一般不需要反复修改，我们把它放在单独的文件里
+\input{njuthesis-setup.def}
+
+% 自行载入所需宏包
+% \usepackage{subcaption} % 嵌套小幅图像，比 subfig 和 subfigure 更新更好
+% \usepackage{siunitx} % 标准单位符号
+% \usepackage{physics} % 物理百宝箱
+% \usepackage[version=4]{mhchem} % 绘制分子式
+\usepackage{xcolor} % 设置颜色
+\definecolor{njuviolet}{RGB}{88,24,69}
+\definecolor{nju-chem-red}{RGB}{204,51,51}
+\colorlet{gray50}{gray!50!white}
+\colorlet{bggray}{white!95!gray}
+\usepackage{listings} % 展示代码
+\lstdefinestyle{style@base}
+{
+  basewidth      = 0.5 em,
+  gobble         = 3,
+  lineskip       = 3 pt,
+  frame          = tb,
+  framerule      = 0.5 pt,
+  framesep       = 0 pt,
+  escapeinside   = {(*}{*)},
+  breaklines     = true,
+  basicstyle     = \footnotesize\ttfamily,
+  keywordstyle   = \bfseries\color{njuviolet},
+  commentstyle   = \itshape\color{white!50!gray},
+  stringstyle    = \color{nju-chem-red},
+  backgroundcolor= \color{white!95!gray},
+  xleftmargin    = 1 em,
+  xrightmargin   = 0 em,
+  columns        =flexible,
+  numbers        =left,
+  numberstyle    =\footnotesize
+}
+\lstdefinestyle{style@python}
+{
+  style          = style@base,
+  showstringspaces = false,
+  stringstyle    = \color{nju-chem-red!60!black},
+  language       = Python
+}
+\usepackage{adjustbox}
+
+\usepackage{algorithm,algorithmic} % 展示算法伪代码
+
+\usepackage{lipsum}
+\usepackage[htt]{hyphenat}
+\hyphenpenalty=200        % 降低断词惩罚，鼓励用连字符断行
+\exhyphenpenalty=200      % 已有连字符处的断行惩罚
+\emergencystretch=1em     % 无法断词时允许微调词间距避免溢出
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{groupplots}
+% 在导言区随意定制所需命令
+% \DeclareMathOperator{\spn}{span}
+% \NewDocumentCommand\mathbi{m}{\textbf{\em #1}}
+% 开始编写论文
+\begin{document}
+
+%---------------------------------------------------------------------
+%	封面、摘要、前言和目录
+%---------------------------------------------------------------------
+
+% 生成封面页
+\maketitle
+
+% 模板默认使用 \flushbottom，即底部平齐
+% 效果更好，但可能出现 underfull \vbox 信息
+% 以下命令用于抑制这些信息
+\raggedbottom
+
+\begin{abstract}
+在软件安全领域，模糊测试已经被证明是挖掘漏洞最高效的手段之一，但它的实际效果很大程度上受限于模糊驱动程序的质量。调研发现，OSS-Fuzz等主流平台上的驱动几乎全靠人工编写，这不仅消耗大量专家时间，而且最终覆盖率往往不高。大语言模型的代码生成能力为自动化这一过程创造了新的可能性，不过现有方法普遍面临几个问题：覆盖率反馈粒度不足，只知道哪些API被调用了却不知道哪行代码没跑到；生成策略单一，缺乏多样性；没有建立起跨轮次的知识积累，迭代优化能力不足。更关键的是，让一个模型同时负责规划、生成、修复和分析，注意力容易被稀释，深层代码路径难以触及。
+
+针对这些问题，本文提出了MAGIC4FDG（Multi-Agent Guided Iteration with Coverage for Fuzz Driver Generation）系统。设计的核心思路是将任务拆解而非让单一模型承担所有职责。系统把驱动生成分成七个子任务，分别交给专职智能体：知识提取、策略规划、代码生成、编译修复、覆盖率分析、状态持久化和缺口诊断。七个智能体组成有向无环图，每个只获取自己需要的信息，避免无关上下文的干扰和注意力稀释。生成流程分两个阶段：第一轮是探索，策略规划智能体分析API语义关系，从十种预定义策略中为每个驱动槽位选择最合适的方案，尽量铺开覆盖面；第二轮起进行迭代优化，缺口诊断智能体利用llvm-cov的行级覆盖率数据定位未覆盖代码及其原因，将结论整理为结构化约束，代码生成智能体据此做定向修改。每个槽位维护独立的知识空间，轮次之间约束条件和代码模式持续累积。所有执行环节（知识提取、编译、模糊测试、覆盖率收集）均在Docker容器内完成。
+
+本文在12个OSS-Fuzz收录的开源C/C++库上进行了实验，与PromptFuzz、Hopper和OSS-Fuzz-Gen等工具以及人工驱动进行对比。结果表明MAGIC4FDG生成的驱动在覆盖率上明显优于单轮生成基线，消融实验也验证了多智能体架构、策略库匹配和迭代反馈机制各自的贡献。在多个目标库上，系统的表现已接近甚至超过了现有最优工具和人工编写的驱动。长时模糊测试进一步验证了驱动的实用价值：在4个库的3小时测试中触发9个崩溃并关联7个已知CVE，还发现了一个潜在新缺陷。
+\end{abstract}
+
+\begin{abstract*}
+  Fuzz testing is among the most effective methods to find security problems in software, but how useful it is in real work is mostly limited by how good the fuzz drivers are. On common platforms like OSS-Fuzz, people write almost all drivers by hand. This takes a lot of work from experienced experts, and many times it only gets limited code coverage in the end. Big language models give new chances to make this whole process automatic, but the current methods we have now have a few issues. The coverage feedback they use is too rough, they use single big monolithic models that easily get diluted attention, they do not keep and reuse knowledge between different iterations, and they use the same generation method every time that does not account for the specific traits of individual libraries.
+
+  This thesis introduces MAGIC4FDG (Multi-Agent Guided Iteration with Coverage for Fuzz Driver Generation), which is a system that breaks down fuzz driver generation into seven specific sub-tasks. Each of these sub-tasks is handled by its own dedicated agent: knowledge extraction, strategy planning, code generation, compilation repair, coverage analysis, state persistence, and gap diagnosis. These agents make up a directed acyclic graph, and each one only gets context that matters for its specific task, this is to stop too much information from causing overload. The whole generation process works in two different phases. The first is the exploration phase, where the planner agent goes through API semantics and picks strategies from a pre-made library that holds ten different approaches. After this comes the exploitation phases, where the analyst agent uses line-level coverage data from llvm-cov to figure out which regions of code are not covered, and then makes structured constraints to help improve the work in a targeted way. Each driver slot keeps its own separate knowledge space, where constraints and code patterns build up little by little across every iteration. Every single step of execution, including things like compilation, fuzzing, and collecting coverage data, all runs inside Docker containers.
+  
+  When we ran experiments on 12 different C/C++ libraries from OSS-Fuzz, we found that MAGIC4FDG gets an average line coverage of 55.01\%. This number is higher than what PromptFuzz (53.25\%), Hopper (50.19\%), and the single-round baseline methods can reach. We did extra ablation studies to check, and these studies confirm that the multi-agent architecture, the strategy matching step, and the iterative feedback mechanism all make their own separate contributions to the performance. When we ran longer 3-hour fuzzing tests on 4 representative libraries, the tests found 9 crashes that are connected to 7 already known CVEs. They also found one possible new defect that had not been spotted before. This shows that the generated drivers do have real practical value for security testing work.
+\end{abstract*}
+
+% 生成目录
+\tableofcontents
+% 生成图片清单
+% \listoffigures
+% 生成表格清单
+% \listoftables
+
+%---------------------------------------------------------------------
+%	正文部分
+%---------------------------------------------------------------------
+\mainmatter
+
+% 符号表
+% 语法与 description 环境一致
+% 两个可选参数依次为说明区域宽度、符号区域宽度
+% 带星号的符号表(notation*)不会插入目录
+% \begin{notation}[10cm]
+%   \item[DFT] 密度泛函理论 (Density functional theory)
+%   \item[DMRG] 密度矩阵重正化群 (Density-Matrix Reformation-Group)
+% \end{notation}
+
+% 建议将论文内容拆分为多个文件
+% 即新建一个 chapters 文件夹
+% 把每一章的内容单独放入一个 .tex 文件
+% 然后在这里用 \include 导入，例如
+%   \include{chapters/introduction}
+%   \include{chapters/environments}
+
+\include{chapters/introduction}
+\include{chapters/related-work}
+\include{chapters/design}
+\include{chapters/implementation}
+\include{chapters/experiment}
+\include{chapters/conclusion}
+
+%---------------------------------------------------------------------
+%	参考文献
+%---------------------------------------------------------------------
+
+% 生成参考文献页
+\printbibliography
+
+%---------------------------------------------------------------------
+%	致谢
+%---------------------------------------------------------------------
+
+\begin{acknowledgement}
+感谢南京大学软件学院，感谢房春荣老师的悉心教导。感谢我的父母与家人的支持与鼓励。
+
+谨以此文，献给所有给予我帮助与鼓励的人。谢谢你们！
+\end{acknowledgement}
+
+%---------------------------------------------------------------------
+%	学术简历
+%---------------------------------------------------------------------
+
+% 详见手册中“成果列表”一节
+% \njuchapter{学术成果}
+% \njupaperlist[攻读博士学位期间发表的学术论文]{preskill2018}
+
+%---------------------------------------------------------------------
+%	附录部分
+%---------------------------------------------------------------------
+
+% 附录部分使用单独的字母序号
+\appendix
+
+% 可以在这里插入补充材料
+\dots
+
+% 完工
+\end{document}

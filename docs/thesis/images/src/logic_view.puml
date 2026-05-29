@@ -1,0 +1,174 @@
+@startuml logic_view
+skinparam classAttributeIconSize 0
+skinparam classFontSize 16
+skinparam classAttributeFontSize 14
+skinparam nodesep 40
+skinparam ranksep 50
+skinparam dpi 150
+skinparam linetype ortho
+hide circle
+
+skinparam class {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+
+' 第一层：全局状态
+class PipelineState <<TypedDict>> {
+    + current_round: int
+    + target_config: dict
+    + knowledge: KnowledgeStore
+    + harness_slots: list[HarnessSlot]
+    + project_coverage: float
+    + plateau_count: int
+}
+
+class KnowledgeStore <<TypedDict>> {
+    + functions: list[FunctionSignature]
+    + call_graph: list[CallGraphEdge]
+    + macros: list[MacroDefinition]
+}
+
+class HarnessSlot <<TypedDict>> {
+    + target_apis: list[str]
+    + strategy_name: str
+    + best_code: str
+    + coverage: float
+    + stall_count: int
+    + constraints_discovered: list
+    + postive_patterns: list
+    + negative_patterns: list
+}
+
+class DriverVariant <<TypedDict>> {
+    + source_code: str
+    + compiled: bool
+    + coverage_result: dict
+}
+
+' 第二层：基础设施
+class DockerRunner {
+    + run_knowledge(config): str
+    + run_compile(source, config): bool
+    + run_fuzz(binary, corpus): dict
+    + run_coverage(binary, corpus): dict
+}
+
+class LLMFactory {
+    + create_client(agent_type): ChatOpenAI
+    - config: dict
+    - timeout: int
+    - max_retries: int
+}
+
+class TokenTracker {
+    + record(agent, tokens_in, tokens_out)
+    + get_summary(): dict
+}
+
+' 第三层：知识处理
+class ASTExtractor {
+    + parse(ast_json): KnowledgeStore
+    - extract_functions(): list
+    - extract_call_graph(): list
+    - extract_macros(): list
+    - extract_types(): list
+
+}
+
+class ContextBuilder {
+    + build_for_generation(slot): str
+    + build_for_analyst(slot): str
+    + build_for_planner(): str
+}
+
+class GroupingEngine {
+    + group_apis(knowledge): list
+    + match_strategy(group): str
+}
+
+' 第四层：智能体
+class KnowledgeAgent {
+    + run(state): PipelineState
+    - build_and_extract(config): str
+}
+
+class PlannerAgent {
+    + run(state): PipelineState
+    - allocate_strategies(knowledge): list
+    - adjust_on_stall(slots): list
+}
+
+class GenerationAgent {
+    + run(state): PipelineState
+    - generate_variant(slot): DriverVariant
+    - build_prompt(slot, context): str
+}
+
+class PatchingAgent {
+    + run(state): PipelineState
+    - compile_and_fix(variant): DriverVariant
+    - extract_errors(output): str
+}
+
+class CoverageAgent {
+    + run(state): PipelineState
+    - fuzz_and_collect(variant): dict
+    - replay_corpus(binary): dict
+    - filter_unreachable(lines): list
+}
+
+class AnalystAgent {
+    + run(state): PipelineState
+    - diagnose_gaps(slot): dict
+    - format_constraints(analysis): list
+}
+
+' 竖向布局：用 hidden down 连接控制层次
+PipelineState -[hidden]down- DockerRunner
+KnowledgeStore -[hidden]down- LLMFactory
+HarnessSlot -[hidden]down- TokenTracker
+DockerRunner -[hidden]down- ASTExtractor
+LLMFactory -[hidden]down- ContextBuilder
+TokenTracker -[hidden]down- GroupingEngine
+ASTExtractor -[hidden]down- KnowledgeAgent
+ContextBuilder -[hidden]down- PlannerAgent
+GroupingEngine -[hidden]down- GenerationAgent
+
+' 横向布局
+PipelineState -[hidden]right- KnowledgeStore
+KnowledgeStore -[hidden]right- HarnessSlot
+HarnessSlot -[hidden]right- DriverVariant
+DockerRunner -[hidden]right- LLMFactory
+LLMFactory -[hidden]right- TokenTracker
+ASTExtractor -[hidden]right- ContextBuilder
+ContextBuilder -[hidden]right- GroupingEngine
+KnowledgeAgent -[hidden]right- PlannerAgent
+PlannerAgent -[hidden]right- GenerationAgent
+GenerationAgent -[hidden]right- PatchingAgent
+PatchingAgent -[hidden]right- CoverageAgent
+CoverageAgent -[hidden]right- AnalystAgent
+
+' 组合关系
+PipelineState *-down- "1..*" HarnessSlot
+PipelineState *-down- "1" KnowledgeStore
+HarnessSlot *-down- "0..*" DriverVariant
+
+' 依赖关系
+KnowledgeAgent ..> DockerRunner
+KnowledgeAgent ..> ASTExtractor
+PlannerAgent ..> ContextBuilder
+PlannerAgent ..> LLMFactory
+PlannerAgent ..> GroupingEngine
+GenerationAgent ..> ContextBuilder
+GenerationAgent ..> LLMFactory
+PatchingAgent ..> DockerRunner
+PatchingAgent ..> LLMFactory
+CoverageAgent ..> DockerRunner
+AnalystAgent ..> ContextBuilder
+AnalystAgent ..> LLMFactory
+GenerationAgent ..> HarnessSlot
+AnalystAgent ..> HarnessSlot
+
+@enduml

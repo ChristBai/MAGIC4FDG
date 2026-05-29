@@ -1,0 +1,194 @@
+<mxfile host="app.diagrams.net" modified="2026-05-23" agent="FuzzForge" version="21.0.0">
+  <diagram name="FuzzForge Pipeline" id="fuzzforge-pipeline">
+    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="1500" math="0" shadow="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===== 标题 ===== -->
+        <mxCell id="title" value="FuzzForge: 覆盖率引导的多智能体模糊测试驱动生成流水线" style="text;html=1;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="150" y="20" width="800" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 阶段标签（左侧） ===== -->
+        <mxCell id="phase1_label" value="探索阶段&#xa;(Round 1)" style="text;html=1;fontSize=11;fontStyle=1;fontColor=#1a73e8;align=center;verticalAlign=middle;rotation=-90;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="phase2_label" value="利用阶段&#xa;(Round 2+)" style="text;html=1;fontSize=11;fontStyle=1;fontColor=#e65100;align=center;verticalAlign=middle;rotation=-90;" vertex="1" parent="1">
+          <mxGeometry x="40" y="750" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 开始节点 ===== -->
+        <mxCell id="start" value="目标库配置" style="shape=mxgraph.flowchart.start_2;whiteSpace=wrap;html=1;fillColor=#1a73e8;strokeColor=#0d47a1;fontColor=#ffffff;fontSize=12;fontStyle=1;size=0.15;" vertex="1" parent="1">
+          <mxGeometry x="430" y="80" width="160" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 知识提取智能体 ===== -->
+        <mxCell id="knowledge" value="&lt;b&gt;知识提取智能体&lt;/b&gt;&#xa;clang AST 解析&#xa;API / 类型 / 调用图" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontSize=11;arcSize=20;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="160" width="240" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="knowledge_icon" value="🔍" style="text;html=1;fontSize=18;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="170" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 策略规划智能体 ===== -->
+        <mxCell id="planner" value="&lt;b&gt;策略规划智能体&lt;/b&gt;&#xa;R1: 场景推理 + 槽位分配&#xa;R2+: 基于约束迭代优化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=11;arcSize=20;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="270" width="240" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="planner_icon" value="📋" style="text;html=1;fontSize=18;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="280" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 代码生成智能体 ===== -->
+        <mxCell id="generation" value="&lt;b&gt;代码生成智能体&lt;/b&gt;&#xa;R1: 从零生成 N 个变体&#xa;R2+: 增量改进最佳驱动" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#f9a825;fontSize=11;arcSize=20;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="380" width="240" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="generation_icon" value="⚙️" style="text;html=1;fontSize=18;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="390" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 编译修复智能体 ===== -->
+        <mxCell id="patching" value="&lt;b&gt;编译修复智能体&lt;/b&gt;&#xa;错误诊断 + 自动修复&#xa;(≤3 次重试)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c62828;fontSize=11;arcSize=20;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="490" width="240" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="patching_icon" value="🔧" style="text;html=1;fontSize=18;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="500" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 判断1：编译成功？ ===== -->
+        <mxCell id="decision1" value="存在编译&#xa;成功的变体?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#424242;fontSize=11;fontStyle=1;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="600" width="120" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 覆盖率收集智能体 ===== -->
+        <mxCell id="coverage" value="&lt;b&gt;覆盖率收集智能体&lt;/b&gt;&#xa;Docker 模糊测试 (fork 模式)&#xa;语料回放 + llvm-cov 收集&#xa;CFG 可达性分析" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede7f6;strokeColor=#4527a0;fontSize=11;arcSize=20;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="750" width="240" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="coverage_icon" value="📊" style="text;html=1;fontSize=18;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="760" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 状态持久化 ===== -->
+        <mxCell id="checkpoint" value="&lt;b&gt;状态持久化&lt;/b&gt;&#xa;序列化检查点" style="shape=mxgraph.flowchart.document;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#616161;fontSize=11;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="875" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 缺口诊断智能体 ===== -->
+        <mxCell id="analyst" value="&lt;b&gt;缺口诊断智能体&lt;/b&gt;&#xa;覆盖率缺口分析&#xa;生成结构化约束" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f7fa;strokeColor=#00695c;fontSize=11;arcSize=20;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="980" width="240" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="analyst_icon" value="🎯" style="text;html=1;fontSize=18;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="990" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 判断2：终止条件 ===== -->
+        <mxCell id="decision2" value="满足终止&#xa;条件?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#424242;fontSize=11;fontStyle=1;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="1095" width="120" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 结束节点 ===== -->
+        <mxCell id="end" value="输出最佳驱动&#xa;+ 实验报告" style="shape=mxgraph.flowchart.start_2;whiteSpace=wrap;html=1;fillColor=#2e7d32;strokeColor=#1b5e20;fontColor=#ffffff;fontSize=12;fontStyle=1;size=0.15;" vertex="1" parent="1">
+          <mxGeometry x="680" y="1115" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 终止条件说明框 ===== -->
+        <mxCell id="stop_conditions" value="终止条件:&#xa;1. 覆盖率 ≥ 目标值&#xa;2. 达到最大轮次&#xa;3. 所有槽位收敛&#xa;4. 连续3轮无提升" style="shape=note;whiteSpace=wrap;html=1;fillColor=#fffde7;strokeColor=#f9a825;fontSize=10;align=left;spacingLeft=8;shadow=1;size=14;" vertex="1" parent="1">
+          <mxGeometry x="700" y="1000" width="160" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 知识积累说明框 ===== -->
+        <mxCell id="knowledge_accum" value="知识积累:&#xa;• constraints_discovered&#xa;• positive_patterns&#xa;• negative_patterns" style="shape=note;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#66bb6a;fontSize=10;align=left;spacingLeft=8;shadow=1;size=14;" vertex="1" parent="1">
+          <mxGeometry x="140" y="960" width="170" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Docker 环境框 ===== -->
+        <mxCell id="docker_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#0288d1;dashed=1;strokeWidth=2;dashPattern=8 4;" vertex="1" parent="1">
+          <mxGeometry x="370" y="145" width="280" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="docker_label" value="Docker 容器执行环境" style="text;html=1;fontSize=10;fontStyle=1;fontColor=#0288d1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="380" y="148" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 连接线 ===== -->
+        <!-- 开始 → 知识提取 -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#333333;" edge="1" source="start" target="knowledge" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- 知识提取 → 策略规划 -->
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#333333;" edge="1" source="knowledge" target="planner" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- 策略规划 → 代码生成 -->
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#333333;" edge="1" source="planner" target="generation" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- 代码生成 → 编译修复 -->
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#333333;" edge="1" source="generation" target="patching" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- 编译修复 → 判断1 -->
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#333333;" edge="1" source="patching" target="decision1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- 判断1 → 覆盖率收集（是） -->
+        <mxCell id="e6" value="是" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#2e7d32;fontColor=#2e7d32;fontSize=11;fontStyle=1;" edge="1" source="decision1" target="coverage" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- 判断1 → 状态持久化（否） -->
+        <mxCell id="e7" value="否" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#c62828;fontColor=#c62828;fontSize=11;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="decision1" target="checkpoint" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="645" />
+              <mxPoint x="700" y="903" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- 覆盖率收集 → 状态持久化 -->
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#333333;" edge="1" source="coverage" target="checkpoint" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- 状态持久化 → 缺口诊断 -->
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#333333;" edge="1" source="checkpoint" target="analyst" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- 缺口诊断 → 判断2 -->
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#333333;" edge="1" source="analyst" target="decision2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- 判断2 → 结束（是） -->
+        <mxCell id="e11" value="是" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#2e7d32;fontColor=#2e7d32;fontSize=11;fontStyle=1;" edge="1" source="decision2" target="end" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- 判断2 → 策略规划（否，循环回） -->
+        <mxCell id="e12" value="否 (下一轮迭代)" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2.5;strokeColor=#e65100;fontColor=#e65100;fontSize=11;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;dashPattern=8 4;" edge="1" source="decision2" target="planner" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="200" y="1140" />
+              <mxPoint x="200" y="303" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== LLM 标记 ===== -->
+        <mxCell id="llm1" value="LLM" style="shape=mxgraph.flowchart.annotation_1;whiteSpace=wrap;html=1;fillColor=#e8eaf6;strokeColor=#3f51b5;fontSize=9;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="640" y="280" width="35" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="llm2" value="LLM" style="shape=mxgraph.flowchart.annotation_1;whiteSpace=wrap;html=1;fillColor=#e8eaf6;strokeColor=#3f51b5;fontSize=9;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="640" y="390" width="35" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="llm3" value="LLM" style="shape=mxgraph.flowchart.annotation_1;whiteSpace=wrap;html=1;fillColor=#e8eaf6;strokeColor=#3f51b5;fontSize=9;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="640" y="500" width="35" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="llm4" value="LLM" style="shape=mxgraph.flowchart.annotation_1;whiteSpace=wrap;html=1;fillColor=#e8eaf6;strokeColor=#3f51b5;fontSize=9;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="640" y="990" width="35" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 迭代循环标注箭头 ===== -->
+        <mxCell id="loop_arrow" value="" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;flipH=1;size=0.5;strokeColor=#e65100;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="260" width="30" height="900" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,90 @@
+@startuml generation_class
+skinparam classAttributeIconSize 0
+skinparam classFontSize 16
+skinparam classAttributeFontSize 14
+skinparam nodesep 40
+skinparam ranksep 50
+skinparam dpi 300
+skinparam linetype ortho
+hide circle
+
+skinparam class {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+
+class planner_node <<function>> {
+    + planner_node(state): dict
+    - _plan_initial(state, knowledge): dict
+    - _plan_iterate(state, slots): dict
+    - _fallback_rule_engine(knowledge, metadata): tuple
+    - _parse_planner_output(raw, knowledge): list[dict]
+    - _build_slots_from_specs(specs, metadata): tuple
+    - _load_strategy_metadata(): list[dict]
+}
+
+class generation_node <<function>> {
+    + generation_node(state): dict
+    - _generate_one(i, selection): tuple
+    - _build_fresh_prompt(config, context, suffix): str
+    - _build_incremental_prompt(config, context, suffix, source, analysis): str
+    - _load_strategy_suffix(strategy_id): str
+}
+
+class HarnessSlot <<TypedDict>> {
+    + slot_id: str
+    + target_apis: list[str]
+    + primary_apis: list[str]
+    + setup_apis: list[str]
+    + teardown_apis: list[str]
+    + best_source: str
+    + best_coverage: float
+    + strategy_history: list[str]
+    + coverage_history: list[float]
+    + status: str
+    + plateau_count: int
+}
+
+class StrategySelection <<TypedDict>> {
+    + slot_id: str
+    + strategy_id: str
+    + rationale: str
+    + target_apis: list[str]
+}
+
+class DriverVariant <<TypedDict>> {
+    + id: str
+    + slot_id: str
+    + source_code: str
+    + compile_status: str
+    + coverage_pct: float
+    + is_incremental: bool
+}
+
+class StrategyFile <<artifact>> {
+    + id: str
+    + name: str
+    + applicable_when: list[str]
+    + best_for: list[str]
+    + body: str (prompt suffix)
+}
+
+' 布局
+planner_node -[hidden]right- generation_node
+HarnessSlot -[hidden]right- StrategySelection
+DriverVariant -[hidden]right- StrategyFile
+
+planner_node -[hidden]down- HarnessSlot
+generation_node -[hidden]down- StrategyFile
+
+' 关系
+planner_node ..> HarnessSlot : 创建/更新
+planner_node ..> StrategySelection : 生成
+planner_node ..> StrategyFile : 读取元数据
+generation_node ..> StrategySelection : 消费
+generation_node ..> StrategyFile : 加载后缀
+generation_node ..> DriverVariant : 生成
+generation_node ..> HarnessSlot : 读取best_source
+
+@enduml

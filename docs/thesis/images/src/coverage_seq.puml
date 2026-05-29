@@ -1,0 +1,47 @@
+@startuml coverage_seq
+skinparam sequenceMessageFontSize 18
+skinparam sequenceParticipantFontSize 16
+skinparam sequenceGroupFontSize 14
+skinparam dpi 300
+skinparam responseMessageBelowArrow true
+
+participant "主函数" as Main
+participant "coverage_node" as CN
+participant "DockerRunner" as DR
+participant "CFGAnalyzer" as CFG
+
+Main -> CN : coverage_node(state)
+activate CN
+
+CN -> CFG : _analyze_reachability()
+activate CFG
+CFG -> DR : clang -emit-llvm (生成IR)
+DR --> CFG : LLVM IR文本
+CFG -> CFG : _parse_cfg_output()
+CFG -> CFG : _reachable_blocks(BFS)
+CFG -> CFG : _get_debug_line_mapping()
+CFG --> CN : reachable_lines: set[int]
+deactivate CFG
+
+== 并行模糊测试 (ThreadPool) ==
+
+CN -> DR : run_fuzz_with_coverage(variant)
+activate DR
+DR -> DR : 编译(覆盖率插桩+ASan)
+DR -> DR : Fork模式模糊测试
+DR -> DR : 语料库重放(-runs=0)
+DR -> DR : llvm-profdata merge
+DR -> DR : llvm-cov export
+DR --> CN : CoverageReport
+deactivate DR
+
+== 槽位更新 ==
+
+CN -> CN : _mark_reachability()
+CN -> CN : 更新slot.best_coverage
+CN -> CN : _aggregate_project_coverage()
+
+CN --> Main : {variants, harness_slots, best_coverage}
+deactivate CN
+
+@enduml

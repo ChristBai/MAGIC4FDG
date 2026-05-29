@@ -1,0 +1,50 @@
+@startuml knowledge_seq
+skinparam sequenceMessageFontSize 18
+skinparam sequenceParticipantFontSize 16
+skinparam sequenceGroupFontSize 14
+skinparam dpi 300
+skinparam responseMessageBelowArrow true
+
+participant "主函数" as Main
+participant "DockerRunner" as DR
+participant "extract_knowledge" as EK
+participant "ContextBuilder" as CB
+
+Main -> EK : knowledge_node()
+activate EK
+
+EK -> DR : build_and_extract()
+activate DR
+DR -> DR : _build_knowledge_script()
+DR -> DR : Docker容器内执行构建+AST导出
+DR --> EK : {ast_header, macros, source_asts}
+deactivate DR
+
+== Phase 1: AST解析 ==
+EK -> EK : _extract_functions(ast, header)
+EK -> EK : _extract_types(ast, header)
+EK -> EK : _extract_comments(ast)
+
+== Phase 2: 宏提取 ==
+EK -> EK : _parse_macros_text(raw)
+
+== Phase 3: 调用图构建 ==
+EK -> EK : _extract_call_graph(source_asts)
+
+== Phase 4: 语义标注 ==
+EK -> EK : _annotate_from_comments()
+EK -> EK : _infer_ownership()
+EK -> EK : _infer_categories()
+
+== Phase 5: 注释附加 ==
+EK -> EK : attach doc_comments
+
+EK --> Main : KnowledgeStore
+deactivate EK
+
+note over CB : 后续由各智能体按需调用
+Main -> CB : build_planner_context()
+Main -> CB : build_generator_context()
+Main -> CB : build_analyst_context()
+
+@enduml

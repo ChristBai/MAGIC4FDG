@@ -1,0 +1,80 @@
+@startuml seq_view
+skinparam sequenceMessageFontSize 18
+skinparam sequenceParticipantFontSize 16
+skinparam sequenceGroupFontSize 14
+skinparam dpi 300
+skinparam responseMessageBelowArrow true
+
+participant "主函数" as Main
+participant "知识提取" as KA
+participant "策略规划" as PA
+participant "代码生成" as GA
+participant "编译修复" as PtA
+participant "覆盖率收集" as CA
+participant "缺陷诊断" as AA
+
+Main -> Main : run_pipeline()
+activate Main
+
+Main -> KA : knowledge_node()
+activate KA
+KA -> KA : run_knowledge()
+KA -> KA : parse() → KnowledgeStore
+KA --> Main : return
+deactivate KA
+
+loop 迭代循环
+
+    Main -> PA : planner_node()
+    activate PA
+    PA -> PA : _load_strategy_metadata()
+    PA -> PA : _plan()
+    PA -> PA : _build_slots_from_specs()
+    PA --> Main : return
+    deactivate PA
+
+    Main -> GA : generation_node()
+    activate GA
+    GA -> GA : build_for_generation()
+    GA -> GA : _load_strategy_suffix()
+    GA -> GA : _build_prompt()
+    GA --> Main : return
+    deactivate GA
+
+    Main -> PtA : patching_node()
+    activate PtA
+    PtA -> PtA : _patch_single_variant()
+    PtA -> PtA : _try_compile()
+    PtA --> Main : return
+    deactivate PtA
+
+    alt _route_after_patching() == "coverage"
+        Main -> CA : coverage_node()
+        activate CA
+        CA -> CA : _run_coverage_for_variant()
+        CA -> CA : _analyze_reachability()
+        CA -> CA : _aggregate_project_coverage()
+        CA --> Main : return
+        deactivate CA
+    end
+
+    Main -> Main : save_checkpoint()
+
+    Main -> AA : analyst_node()
+    activate AA
+    AA -> AA : build_for_analyst()
+    AA -> AA : _analyze_single_slot()
+    AA -> AA : _update_slot_knowledge()
+    AA --> Main : return
+    deactivate AA
+
+    Main -> Main : _route_after_analyst()
+    alt "stop"
+        Main -> Main : save_report()
+    end
+
+end
+
+deactivate Main
+
+@enduml

@@ -1,0 +1,54 @@
+@startuml analyst_class
+skinparam classAttributeIconSize 0
+skinparam classFontSize 16
+skinparam classAttributeFontSize 14
+skinparam nodesep 40
+skinparam ranksep 50
+skinparam dpi 300
+skinparam linetype ortho
+hide circle
+
+skinparam class {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+
+class analyst_node <<function>> {
+    + analyst_node(state): dict
+    - _analyze_single_slot(slot, knowledge, config, context): dict
+    - _build_uncovered_summary(lines, context): str
+    - _build_function_summary(coverage): str
+    - _parse_analyst_response(raw): dict
+    - _update_slot_knowledge(existing, analysis, round): dict
+}
+
+class SlotKnowledge <<TypedDict>> {
+    + constraints_discovered: list[dict]
+    + positive_patterns: list[dict]
+    + negative_patterns: list[dict]
+}
+
+class AnalystOutput <<TypedDict>> {
+    + constraints: list[dict]
+    + uncovered_clusters: list[dict]
+    + knowledge_updates: dict
+}
+
+class ContextBuilder <<module>> {
+    + build_analyst_context(knowledge, uncovered_source): str
+}
+
+' 布局
+analyst_node -[hidden]right- SlotKnowledge
+AnalystOutput -[hidden]right- ContextBuilder
+
+analyst_node -[hidden]down- AnalystOutput
+
+' 关系
+analyst_node ..> ContextBuilder : 构建诊断上下文
+analyst_node ..> AnalystOutput : 生成
+analyst_node ..> SlotKnowledge : 更新(隔离)
+AnalystOutput ..> SlotKnowledge : 合并到
+
+@enduml

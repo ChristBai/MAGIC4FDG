@@ -1,0 +1,44 @@
+@startuml phy_view
+skinparam nodeFontSize 16
+skinparam componentFontSize 14
+skinparam artifactFontSize 13
+skinparam noteFontSize 12
+skinparam dpi 300
+skinparam linetype ortho
+
+skinparam node {
+    BackgroundColor #F8F8F8
+    BorderColor Black
+}
+
+skinparam component {
+    BackgroundColor White
+    BorderColor Black
+}
+
+node "宿主机 (Host)" as host {
+    component "Python主进程" as python {
+    }
+    component "流水线编排层" as pipeline
+    component "智能体层" as agents
+    artifact "generated/build_cache/" as cache
+    artifact "generated/iterations/" as output
+    artifact "generated/checkpoints/" as ckpt
+}
+
+node "Docker容器\n(Ubuntu 22.04)" as docker {
+    component "clang/LLVM工具链" as llvm
+    component "LibFuzzer运行时" as libfuzzer
+    component "AddressSanitizer" as asan
+    artifact "/opt/bench/ (只读挂载)" as bench
+    artifact "/workspace/ (读写挂载)" as workspace
+}
+
+cloud "大语言模型服务\n(OpenAI API)" as llm_service
+
+host -down-> docker : Docker Engine API
+cache -down-> bench : 卷挂载(ro)
+output -down-> workspace : 卷挂载(rw)
+host -right-> llm_service : HTTPS\n(带重试机制)
+
+@enduml

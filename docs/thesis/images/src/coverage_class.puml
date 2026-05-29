@@ -1,0 +1,59 @@
+@startuml coverage_class
+skinparam classAttributeIconSize 0
+skinparam classFontSize 16
+skinparam classAttributeFontSize 14
+skinparam nodesep 40
+skinparam ranksep 50
+skinparam dpi 300
+skinparam linetype ortho
+hide circle
+
+skinparam class {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+
+class coverage_node <<function>> {
+    + coverage_node(state): dict
+    - _run_coverage_for_variant(variant, config, seconds): DriverVariant
+    - _analyze_reachability(config): set[int]
+    - _mark_reachability(lines, reachable): list[dict]
+    - _aggregate_project_coverage(variants): dict
+    - _extract_uncovered_lines(report): list[dict]
+    - _extract_covered_lines(report): list[dict]
+}
+
+class DockerRunner <<module>> {
+    + run_fuzz_with_coverage(source, config, seconds): dict
+    + compile_driver(source, config): tuple[bool, str]
+    - _docker_run(command, timeout, memory): CompletedProcess
+    - _get_build_cache_volumes(config): tuple
+}
+
+class CFGAnalyzer <<function>> {
+    + _parse_cfg_output(ir_text): dict[str, set[str]]
+    + _reachable_blocks(graph, entry): set[str]
+    + _get_debug_line_mapping(ir_text): dict[str, list[int]]
+}
+
+class CoverageReport <<TypedDict>> {
+    + coverage: dict
+    + totals: dict
+    + function_coverage: list[dict]
+    + error: str
+}
+
+' 布局
+coverage_node -[hidden]right- DockerRunner
+CFGAnalyzer -[hidden]right- CoverageReport
+
+coverage_node -[hidden]down- CFGAnalyzer
+
+' 关系
+coverage_node ..> DockerRunner : 调用fuzz+覆盖率
+coverage_node ..> CFGAnalyzer : 可达性分析
+DockerRunner ..> CoverageReport : 生成
+coverage_node ..> CoverageReport : 消费
+
+@enduml

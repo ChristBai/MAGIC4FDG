@@ -1,0 +1,44 @@
+@startuml analyst_seq
+skinparam sequenceMessageFontSize 18
+skinparam sequenceParticipantFontSize 16
+skinparam sequenceGroupFontSize 14
+skinparam dpi 300
+skinparam responseMessageBelowArrow true
+
+participant "主函数" as Main
+participant "analyst_node" as AN
+participant "ContextBuilder" as CB
+participant "LLM服务" as LLM
+
+Main -> AN : analyst_node(state)
+activate AN
+
+AN -> AN : 筛选active slots
+
+== 并行分析 (ThreadPool) ==
+
+AN -> AN : _analyze_single_slot(slot)
+activate AN
+
+AN -> CB : build_analyst_context()
+CB --> AN : 诊断上下文文本
+
+AN -> AN : _build_uncovered_summary()
+AN -> AN : _build_function_summary()
+AN -> AN : 组装ANALYST_PROMPT
+
+AN -> LLM : 诊断请求(JSON输出)
+LLM --> AN : 结构化分析结果
+
+AN -> AN : _parse_analyst_response()
+deactivate AN
+
+== 知识累积 ==
+
+AN -> AN : _update_slot_knowledge()
+note right: 按slot_id隔离存储\nconstraints + positive + negative
+
+AN --> Main : {slot_coverage_analyses, knowledge, round+1}
+deactivate AN
+
+@enduml

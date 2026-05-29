@@ -1,0 +1,60 @@
+@startuml development_view
+skinparam packageFontSize 16
+skinparam componentFontSize 14
+skinparam nodesep 30
+skinparam ranksep 40
+skinparam dpi 150
+skinparam linetype ortho
+
+skinparam package {
+    BackgroundColor #FAFAFA
+    BorderColor Black
+    FontStyle bold
+}
+
+skinparam component {
+    BackgroundColor White
+    BorderColor Black
+}
+
+package "流水线编排层 (pipeline)" {
+    [state] as state
+    [graph] as graph
+    [supervisor] as supervisor
+    [checkpoint] as checkpoint
+    [report] as report
+}
+
+package "智能体层 (agents)" {
+    [knowledge] as ak
+    [planner] as ap
+    [generation] as ag
+    [patching] as apa
+    [coverage] as ac
+    [analyst] as aan
+}
+
+package "知识处理层 (knowledge)" {
+    [extractor] as ke
+    [context_builder] as kcb
+    [grouping] as kg
+}
+
+package "基础设施层 (infra)" {
+    [docker_runner] as idr
+    [llm_factory] as ilf
+    [token_tracker] as itt
+}
+
+package "配置资源" {
+    [strategies] as strategies
+    [prompts] as prompts
+}
+
+' 层间依赖
+"智能体层 (agents)" ..> "知识处理层 (knowledge)" : <<use>>
+"智能体层 (agents)" ..> "基础设施层 (infra)" : <<use>>
+"流水线编排层 (pipeline)" ..> "智能体层 (agents)" : <<use>>
+"智能体层 (agents)" ..> "配置资源" : <<load>>
+
+@enduml

@@ -1,0 +1,53 @@
+@startuml generation_seq
+skinparam sequenceMessageFontSize 18
+skinparam sequenceParticipantFontSize 16
+skinparam sequenceGroupFontSize 14
+skinparam dpi 300
+skinparam responseMessageBelowArrow true
+
+participant "主函数" as Main
+participant "planner_node" as PN
+participant "generation_node" as GN
+participant "LLM服务" as LLM
+participant "StrategyFile" as SF
+
+Main -> PN : planner_node(state)
+activate PN
+
+alt Round 1 (探索阶段)
+    PN -> PN : _plan_initial()
+    PN -> LLM : 场景推理请求
+    LLM --> PN : JSON(slots规划)
+    PN -> PN : _parse_planner_output()
+    PN -> PN : _build_slots_from_specs()
+else LLM失败
+    PN -> PN : _fallback_rule_engine()
+end
+
+alt Round 2+ (利用阶段)
+    PN -> PN : _plan_iterate()
+    PN -> PN : plateau检测与策略切换
+end
+
+PN --> Main : {harness_slots, strategy_selections}
+deactivate PN
+
+Main -> GN : generation_node(state)
+activate GN
+
+GN -> SF : _load_strategy_suffix(id)
+SF --> GN : 策略正文
+
+alt Round 1 (从零生成)
+    GN -> GN : _build_fresh_prompt()
+else Round 2+ (增量改进)
+    GN -> GN : _build_incremental_prompt()
+end
+
+GN -> LLM : 并行生成请求(ThreadPool)
+LLM --> GN : fuzz driver源码
+
+GN --> Main : {variants: list[DriverVariant]}
+deactivate GN
+
+@enduml
