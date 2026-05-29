@@ -6,7 +6,7 @@
   "link_flags": ["-lpthread", "-ldl"],
   "include_dirs": ["/opt/bench/openssl/include"],
   "source_files": [],
-  "coverage_sources": ["/opt/bench/openssl/src"],
+  "coverage_sources": ["/tmp/openssl-src"],
   "seed_corpus": "benchmarks/libs/openssl/seed_corpus",
   "dictionary": "benchmarks/libs/openssl/openssl.dict",
   "language": "C",

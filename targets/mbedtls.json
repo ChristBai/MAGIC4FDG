@@ -6,7 +6,7 @@
   "link_flags": [],
   "include_dirs": ["/opt/bench/mbedtls/include"],
   "source_files": [],
-  "coverage_sources": ["/opt/bench/mbedtls/src"],
+  "coverage_sources": ["/tmp/mbedtls-src/library"],
   "seed_corpus": "benchmarks/libs/mbedtls/seed_corpus",
   "dictionary": "benchmarks/libs/mbedtls/mbedtls.dict",
   "language": "C",

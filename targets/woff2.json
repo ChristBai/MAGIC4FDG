@@ -6,7 +6,7 @@
   "link_flags": ["-lstdc++"],
   "include_dirs": ["/opt/bench/woff2/include", "/opt/bench/woff2/include/brotli"],
   "source_files": [],
-  "coverage_sources": ["/opt/bench/woff2/src"],
+  "coverage_sources": ["/tmp/woff2-src/src"],
   "seed_corpus": "benchmarks/libs/woff2/seed_corpus",
   "dictionary": "benchmarks/libs/woff2/woff2.dict",
   "language": "C++",

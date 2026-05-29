@@ -5,7 +5,7 @@
   "static_libs": ["/opt/bench/cjson/lib/libcjson.a"],
   "include_dirs": ["/opt/bench/cjson/include/cjson"],
   "source_files": [],
-  "coverage_sources": ["/opt/bench/cjson/src"],
+  "coverage_sources": ["/tmp/cjson-src"],
   "seed_corpus": "benchmarks/libs/cjson/seed_corpus",
   "dictionary": "benchmarks/libs/cjson/json.dict",
   "language": "C",

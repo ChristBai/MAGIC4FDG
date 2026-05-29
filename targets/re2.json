@@ -6,7 +6,7 @@
   "link_flags": ["-lpthread", "-lstdc++"],
   "include_dirs": ["/opt/bench/re2/include", "/opt/bench/abseil/include"],
   "source_files": [],
-  "coverage_sources": ["/opt/bench/re2/src"],
+  "coverage_sources": ["/tmp/re2-src/re2"],
   "seed_corpus": "benchmarks/libs/re2/seed_corpus",
   "dictionary": "benchmarks/libs/re2/re2.dict",
   "language": "C++",

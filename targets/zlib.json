@@ -5,7 +5,7 @@
   "static_libs": ["/opt/bench/zlib/lib/libz.a"],
   "include_dirs": ["/opt/bench/zlib/include"],
   "source_files": [],
-  "coverage_sources": ["/opt/bench/zlib/src"],
+  "coverage_sources": ["/tmp/zlib-src"],
   "seed_corpus": "benchmarks/libs/zlib/seed_corpus",
   "dictionary": "benchmarks/libs/zlib/zlib.dict",
   "language": "C",

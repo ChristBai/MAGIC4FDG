@@ -6,7 +6,7 @@
   "link_flags": ["-lstdc++"],
   "include_dirs": ["/opt/bench/harfbuzz/include/harfbuzz"],
   "source_files": [],
-  "coverage_sources": ["/opt/bench/harfbuzz/src"],
+  "coverage_sources": ["/tmp/harfbuzz-src/src"],
   "seed_corpus": "benchmarks/libs/harfbuzz/seed_corpus",
   "dictionary": "benchmarks/libs/harfbuzz/hb.dict",
   "language": "C++",

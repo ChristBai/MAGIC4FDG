@@ -6,7 +6,7 @@
   "link_flags": [],
   "include_dirs": ["/opt/bench/libjpeg-turbo/include"],
   "source_files": [],
-  "coverage_sources": ["/opt/bench/libjpeg-turbo/src"],
+  "coverage_sources": ["/tmp/libjpeg-turbo-src"],
   "seed_corpus": "benchmarks/libs/libjpeg-turbo/seed_corpus",
   "dictionary": "benchmarks/libs/libjpeg-turbo/jpeg.dict",
   "language": "C",

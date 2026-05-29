@@ -6,7 +6,7 @@
   "link_flags": ["-lm"],
   "include_dirs": ["/opt/bench/libpng/include/libpng16", "/opt/bench/zlib/include"],
   "source_files": [],
-  "coverage_sources": ["/opt/bench/libpng/src"],
+  "coverage_sources": ["/tmp/libpng-src"],
   "seed_corpus": "benchmarks/libs/libpng/seed_corpus",
   "dictionary": "benchmarks/libs/libpng/png.dict",
   "language": "C",

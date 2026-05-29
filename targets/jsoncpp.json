@@ -5,7 +5,7 @@
   "static_libs": ["/opt/bench/jsoncpp/lib/libjsoncpp.a"],
   "include_dirs": ["/opt/bench/jsoncpp/include"],
   "source_files": [],
-  "coverage_sources": ["/opt/bench/jsoncpp/src"],
+  "coverage_sources": ["/tmp/jsoncpp-src/src/lib_json"],
   "seed_corpus": "benchmarks/libs/jsoncpp/seed_corpus",
   "dictionary": "benchmarks/libs/cjson/json.dict",
   "language": "C++",

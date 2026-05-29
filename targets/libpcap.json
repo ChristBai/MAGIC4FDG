@@ -6,7 +6,7 @@
   "link_flags": [],
   "include_dirs": ["/opt/bench/libpcap/include"],
   "source_files": [],
-  "coverage_sources": ["/opt/bench/libpcap/src"],
+  "coverage_sources": ["/tmp/libpcap-src"],
   "seed_corpus": "benchmarks/libs/libpcap/seed_corpus",
   "dictionary": "benchmarks/libs/libpcap/pcap.dict",
   "language": "C",

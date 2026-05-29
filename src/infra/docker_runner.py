@@ -390,6 +390,10 @@ def run_fuzz_with_coverage(
     include_args = " ".join(f'-I"{d}"' for d in include_dirs)
     source_list = " ".join(f'"{s}"' for s in source_files)
     static_libs_str = " ".join(f'"{s}"' for s in static_libs)
+    if len(static_libs) > 1:
+        static_libs_whole = f'-Wl,--whole-archive "{static_libs[0]}" -Wl,--no-whole-archive ' + " ".join(f'"{s}"' for s in static_libs[1:])
+    else:
+        static_libs_whole = '-Wl,--whole-archive ' + static_libs_str + ' -Wl,--no-whole-archive'
     link_flags_str = " ".join(link_flags)
     driver_rel = f"generated/{driver_filename}"
     driver_stem = Path(driver_filename).stem
@@ -449,9 +453,9 @@ for src in "${{SOURCES[@]}}"; do
     OBJECTS="$OBJECTS $obj"
 done
 
-# Link with fuzzer
+# Link with fuzzer (--whole-archive for target lib only, stable coverage denominator)
 $CXX -std=c++17 $COMMON_FLAGS {include_args} $BUILD_INCLUDES \\
-    $OBJECTS "{driver_rel}" {static_libs_str} {link_flags_str} -fsanitize=fuzzer,address -o /tmp/fuzz_cov 2>&1
+    $OBJECTS "{driver_rel}" {static_libs_whole} {link_flags_str} -fsanitize=fuzzer,address -o /tmp/fuzz_cov 2>&1
 echo "BUILD_OK"
 
 # Prepare corpus
@@ -484,16 +488,14 @@ export LLVM_PROFILE_FILE=/tmp/replay_%m.profraw
 $LLVM_PROFDATA merge -sparse /tmp/replay_*.profraw -o /tmp/fuzzer.profdata 2>/dev/null \\
   || $LLVM_PROFDATA merge -sparse /tmp/fuzzer_*.profraw -o /tmp/fuzzer.profdata
 
-# Export coverage as JSON (skip-expansions/functions to keep output manageable for large libs)
+# Export coverage as JSON (filtering done in Python by coverage_sources prefix)
 $LLVM_COV export /tmp/fuzz_cov \\
     -instr-profile=/tmp/fuzzer.profdata \\
-    -skip-expansions -skip-functions \\
-    {cov_sources} > {report_json}
+    -skip-expansions -skip-functions > {report_json}
 
 # Export function-level report
 $LLVM_COV report /tmp/fuzz_cov \\
-    -instr-profile=/tmp/fuzzer.profdata \\
-    {cov_sources} > {func_report} 2>&1 || true
+    -instr-profile=/tmp/fuzzer.profdata > {func_report} 2>&1 || true
 
 echo "COVERAGE_OK"
 """
@@ -531,7 +533,7 @@ echo "COVERAGE_OK"
         return _empty_coverage("Coverage export produced empty file")
 
     raw_export = json.loads(raw_text)
-    summary = _summarize_llvm_export(raw_export)
+    summary = _summarize_llvm_export(raw_export, coverage_sources=coverage_sources)
 
     func_report_path = ROOT / func_report
     if func_report_path.exists():
@@ -557,8 +559,11 @@ def _empty_coverage(error: str) -> dict:
 # 覆盖率解析
 # =============================================================================
 
-def _summarize_llvm_export(export_data: dict) -> dict:
-    """将 llvm-cov export JSON 转换为内部格式。"""
+def _summarize_llvm_export(export_data: dict, coverage_sources: list[str] | None = None) -> dict:
+    """将 llvm-cov export JSON 转换为内部格式。
+
+    coverage_sources: 源路径前缀列表，用于过滤只统计目标库的文件。
+    """
     data_items = export_data.get("data") or []
     if not data_items:
         return _empty_coverage("No data in llvm-cov export")
@@ -566,19 +571,61 @@ def _summarize_llvm_export(export_data: dict) -> dict:
     first = data_items[0]
     files = []
     for file_item in first.get("files", []):
+        filename = file_item.get("filename", "")
+        if coverage_sources:
+            if not any(filename.startswith(prefix) for prefix in coverage_sources):
+                continue
         summary = file_item.get("summary", {})
         segments = [seg for seg in file_item.get("segments", []) if len(seg) >= 5]
         files.append({
-            "filename": file_item.get("filename", ""),
+            "filename": filename,
             "summary": summary,
             "segments": segments,
         })
 
+    if coverage_sources and files:
+        totals = _recompute_totals(files)
+    else:
+        totals = first.get("totals", {})
+
     return {
         "coverage": {
-            "totals": first.get("totals", {}),
+            "totals": totals,
             "files": sorted(files, key=lambda f: f["filename"]),
         }
+    }
+
+
+def _recompute_totals(files: list[dict]) -> dict:
+    """从过滤后的文件列表重新计算 totals。"""
+    lines_count = lines_covered = 0
+    branches_count = branches_covered = 0
+    functions_count = functions_covered = 0
+    regions_count = regions_covered = 0
+
+    for f in files:
+        s = f.get("summary", {})
+        lines = s.get("lines", {})
+        lines_count += lines.get("count", 0)
+        lines_covered += lines.get("covered", 0)
+        branches = s.get("branches", {})
+        branches_count += branches.get("count", 0)
+        branches_covered += branches.get("covered", 0)
+        functions = s.get("functions", {})
+        functions_count += functions.get("count", 0)
+        functions_covered += functions.get("covered", 0)
+        regions = s.get("regions", {})
+        regions_count += regions.get("count", 0)
+        regions_covered += regions.get("covered", 0)
+
+    def pct(covered, total):
+        return (covered / total * 100) if total > 0 else 0.0
+
+    return {
+        "lines": {"count": lines_count, "covered": lines_covered, "percent": pct(lines_covered, lines_count)},
+        "branches": {"count": branches_count, "covered": branches_covered, "percent": pct(branches_covered, branches_count)},
+        "functions": {"count": functions_count, "covered": functions_covered, "percent": pct(functions_covered, functions_count)},
+        "regions": {"count": regions_count, "covered": regions_covered, "percent": pct(regions_covered, regions_count)},
     }
 
 
@@ -647,6 +694,10 @@ def run_union_coverage(
     include_args = " ".join(f'-I"{d}"' for d in include_dirs)
     source_list = " ".join(f'"{s}"' for s in source_files)
     static_libs_str = " ".join(f'"{s}"' for s in static_libs)
+    if len(static_libs) > 1:
+        static_libs_whole = f'-Wl,--whole-archive "{static_libs[0]}" -Wl,--no-whole-archive ' + " ".join(f'"{s}"' for s in static_libs[1:])
+    else:
+        static_libs_whole = '-Wl,--whole-archive ' + static_libs_str + ' -Wl,--no-whole-archive'
     link_flags_str = " ".join(link_flags)
     cov_sources = " ".join(f'"{s}"' for s in coverage_sources) if coverage_sources else source_list
     accumulated_corpus_dir = f"generated/accumulated_corpus/{library_name}"
@@ -677,7 +728,7 @@ def run_union_coverage(
         compile_blocks.append(f"""
 # Compile driver {i}: {fname}
 $CXX -std=c++17 $COMMON_FLAGS {include_args} $BUILD_INCLUDES \\
-    $OBJECTS "generated/{fname}" {static_libs_str} {link_flags_str} \\
+    $OBJECTS "generated/{fname}" {static_libs_whole} {link_flags_str} \\
     -fsanitize=fuzzer,address -o /tmp/fuzz_union_{i} 2>&1
 if [ $? -ne 0 ]; then echo "COMPILE_FAIL_{i}"; fi
 """)
@@ -752,8 +803,7 @@ fi
 
 $LLVM_COV export $FIRST_BIN \\
     -instr-profile=/tmp/union_merged.profdata \\
-    -skip-expansions -skip-functions \\
-    {cov_sources} > generated/union_coverage.json
+    -skip-expansions -skip-functions > generated/union_coverage.json
 
 echo "UNION_OK"
 """
@@ -806,7 +856,21 @@ echo "UNION_OK"
                 "branch_pct": 0.0, "branch_covered": 0, "branch_total": 0,
                 "error": "No data in union export"}
 
-    totals = data_items[0].get("totals", {})
+    # Filter files by coverage_sources prefix
+    first = data_items[0]
+    if coverage_sources:
+        matching_files = [
+            f for f in first.get("files", [])
+            if any(f.get("filename", "").startswith(prefix) for prefix in coverage_sources)
+        ]
+        if matching_files:
+            totals = _recompute_totals([
+                {"summary": f.get("summary", {})} for f in matching_files
+            ])
+        else:
+            totals = first.get("totals", {})
+    else:
+        totals = first.get("totals", {})
     lines = totals.get("lines", {})
     branches = totals.get("branches", {})
 
